@@ -1,0 +1,19 @@
+
+name: augmented-maskrcnn
+#prefix: /your/custom/path/envs/augmented-maskrcnn
+channels:
+  - conda-forge
+  - pytorch
+  - anaconda
+dependencies:
+  - python=3.6
+  - pip
+  - anaconda::cython 
+  - pytorch::torchvision>=0.5.0
+  - pytorch::pytorch >=1.0.1
+  - anaconda::cudatoolkit=10.1
+  - numpy=1.17
+  - pip:
+    - opencv-python 
+    - git+https://github.com/albu/albumentations
+    - git+https://github.com/gautamchitnis/cocoapi.git#subdirectory=PythonAPI
