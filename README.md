@@ -5,10 +5,10 @@ This repo lets you **easily fine tune pretrained MaskRCNN model with 64 fast ima
 - **COCO evaluation** is performed after each epoch, during training
 
 ## Installation
-Manually install Miniconda (Python3) for your OS:
+- Manually install Miniconda (Python3) for your OS:
 https://docs.conda.io/en/latest/miniconda.html
 
-Install Miniconda (Python3) by bash script on Linux:
+Or install Miniconda (Python3) by bash script on Linux:
 ```console
 sudo apt update --yes
 sudo apt upgrade --yes
@@ -17,7 +17,7 @@ bash ~/miniconda.sh -b -p ~/miniconda
 rm ~/miniconda.sh
 ```
 
-Inside the base project directory, open up a terminal/anaconda promt window and create environment:
+- Inside the base project directory, open up a terminal/anaconda promt window and create environment:
 ```console
 conda env create -f environment.yml
 ```
