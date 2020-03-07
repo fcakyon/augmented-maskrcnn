@@ -15,7 +15,8 @@ from train import get_model_instance_segmentation
 
 
 def get_transform() -> Compose:
-    transforms = Compose([Normalize()])
+    transforms = Compose([Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225])])
     return transforms
 
 

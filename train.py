@@ -45,7 +45,8 @@ def get_model_instance_segmentation(num_classes: int):
 
 def get_transform(train: bool) -> Compose:
     transforms = Compose(
-            [Normalize()],
+            [Normalize(mean=[0.485, 0.456, 0.406],
+                       std=[0.229, 0.224, 0.225])],
             bbox_params=BboxParams(format='pascal_voc',
                                    min_area=0.,
                                    min_visibility=0.,
@@ -54,7 +55,8 @@ def get_transform(train: bool) -> Compose:
     # compose train transforms
     if train:
         transforms = Compose(
-                [Normalize(),
+                [Normalize(mean=[0.485, 0.456, 0.406],
+                           std=[0.229, 0.224, 0.225]),
                  HorizontalFlip(),
                  RandomRotate90(),
                  RandomBrightness(),
