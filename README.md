@@ -22,6 +22,12 @@ Inside the base project directory, open up a terminal/anaconda promt window and 
 ~$ conda env create -f environment.yml
 ```
 
+- After environment setup, activate environment and run the tests to see if everything is ready:
+```console
+conda activate augmented-maskrcnn
+python -m unittest
+```
+
 ## Usage
 - In the base project directory, open up a terminal/anaconda promt window, and activate environment:
 ```console
