@@ -10,8 +10,9 @@ dependencies:
   - pip
   - anaconda::cython 
   - pytorch::torchvision>=0.5.0
-  - pytorch::pytorch >=1.0.1
+  - pytorch::pytorch>=1.0.1
   - anaconda::cudatoolkit=10.1
+  - anaconda::jsonschema>=2.6.0
   - numpy=1.17
   - pip:
     - opencv-python 
