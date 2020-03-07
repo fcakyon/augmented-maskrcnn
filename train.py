@@ -22,6 +22,7 @@ from albumentations import (
     Normalize
 )
 
+
 def get_model_instance_segmentation(num_classes: int):
     # load an instance segmentation model pre-trained on COCO
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
@@ -41,60 +42,66 @@ def get_model_instance_segmentation(num_classes: int):
 
     return model
 
+
 def get_transform(train: bool) -> Compose:
-    transforms = Compose([Normalize(),
-                              ],bbox_params=BboxParams(format='pascal_voc', 
-                                                        min_area=0., 
-                                                        min_visibility=0., 
-                                                        label_fields=['category_id']))
-    
+    transforms = Compose(
+            [Normalize()],
+            bbox_params=BboxParams(format='pascal_voc',
+                                   min_area=0.,
+                                   min_visibility=0.,
+                                   label_fields=['category_id']))
+
     # compose train transforms
     if train:
-        transforms = Compose([Normalize(),
-                              HorizontalFlip(),
-                              RandomRotate90(),
-                              RandomBrightness(),
-                              MotionBlur(),
-                              ],bbox_params=BboxParams(format='pascal_voc', 
-                                                        min_area=0., 
-                                                        min_visibility=0., 
-                                                        label_fields=['category_id']))
+        transforms = Compose(
+                [Normalize(),
+                 HorizontalFlip(),
+                 RandomRotate90(),
+                 RandomBrightness(),
+                 MotionBlur()],
+                bbox_params=BboxParams(format='pascal_voc',
+                                       min_area=0.,
+                                       min_visibility=0.,
+                                       label_fields=['category_id']))
     return transforms
+
 
 def train(config=None):
     if config is None:
         cfg = configurations[1]
     else:
         cfg = config
-        
+
     # fix the seed for reproduce results
-    SEED = cfg['SEED'] 
+    SEED = cfg['SEED']
     torch.manual_seed(SEED)
     torch.cuda.manual_seed(SEED)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     random.seed(SEED)
-    
-    # parse config parameters   
+
+    # parse config parameters
     DATA_ROOT = cfg["DATA_ROOT"]
     COCO_PATH = cfg["COCO_PATH"]
-    
+
     ARTIFACT_DIR = cfg["ARTIFACT_DIR"]
     EXPERIMENT_NAME = cfg["EXPERIMENT_NAME"]
-    
+
     BATCH_SIZE = cfg["BATCH_SIZE"]
     NUM_EPOCH = cfg["NUM_EPOCH"]
-    
+
     DEVICE = cfg["DEVICE"]
     NUM_WORKERS = cfg["NUM_WORKERS"]
-    
+
     # train on the GPU or on the CPU, if a GPU is not available
     device = DEVICE
 
     # use our dataset and defined transformations
-    dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transform(train=True))
-    dataset_test = COCODataset(DATA_ROOT, COCO_PATH, get_transform(train=False))
-    
+    dataset = COCODataset(DATA_ROOT, COCO_PATH,
+                          get_transform(train=True))
+    dataset_test = COCODataset(DATA_ROOT, COCO_PATH,
+                               get_transform(train=False))
+
     # our dataset has two classes only - background and id card
     num_classes = dataset.num_objects + 1
 
@@ -131,7 +138,8 @@ def train(config=None):
     for epoch in range(NUM_EPOCH):
         best_bbox_05095_ap = -1
         # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
+        train_one_epoch(model, optimizer, data_loader, device, epoch,
+                        print_freq=10)
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
@@ -139,15 +147,18 @@ def train(config=None):
         # update best model if it has the best bbox 0.50:0.95 AP
         bbox_05095_ap = coco_evaluator.coco_eval["bbox"].stats[0]
         if bbox_05095_ap > best_bbox_05095_ap:
-            save_path = os.path.join(ARTIFACT_DIR, EXPERIMENT_NAME + '-best.pt')
-            model_dict = {"state_dict":model.state_dict(), "cfg": cfg}
+            save_path = os.path.join(ARTIFACT_DIR,
+                                     EXPERIMENT_NAME + '-best.pt')
+            model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
             torch.save(model_dict, save_path)
             best_bbox_05095_ap = bbox_05095_ap
-        
+
     # save final model
-    save_path = os.path.join(ARTIFACT_DIR, EXPERIMENT_NAME + '-last.pt')
-    model_dict = {"state_dict":model.state_dict(), "cfg": cfg}
+    save_path = os.path.join(ARTIFACT_DIR,
+                             EXPERIMENT_NAME + '-last.pt')
+    model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
     torch.save(model_dict, save_path)
-        
+
+
 if __name__ == "__main__":
     train()

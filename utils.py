@@ -1,6 +1,7 @@
 import os
 import json
 
+
 def process_coco(coco_file_path: str) -> (list, dict):
     """
     Accepts a coco object detection file.
@@ -8,7 +9,7 @@ def process_coco(coco_file_path: str) -> (list, dict):
     """
     with open(coco_file_path) as json_file:
         coco_dict = json.load(json_file)
-        
+
     images = list()
     for image in coco_dict["images"]:
         image_annotations = list()
@@ -19,6 +20,7 @@ def process_coco(coco_file_path: str) -> (list, dict):
         images.append(image)
 
     return images, coco_dict["categories"]
+
 
 def create_dir(_dir):
     """
