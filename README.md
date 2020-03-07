@@ -10,16 +10,16 @@ https://docs.conda.io/en/latest/miniconda.html
 
 Install Miniconda (Python3) by bash script on Linux:
 ```console
-~$ sudo apt update --yes
-~$ sudo apt upgrade --yes
-~$ wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
-~$ bash ~/miniconda.sh -b -p ~/miniconda 
-~$ rm ~/miniconda.sh
+sudo apt update --yes
+sudo apt upgrade --yes
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+bash ~/miniconda.sh -b -p ~/miniconda 
+rm ~/miniconda.sh
 ```
 
 Inside the base project directory, open up a terminal/anaconda promt window and create environment:
 ```console
-~$ conda env create -f environment.yml
+conda env create -f environment.yml
 ```
 
 - After environment setup, activate environment and run the tests to see if everything is ready:
@@ -31,17 +31,17 @@ python -m unittest
 ## Usage
 - In the base project directory, open up a terminal/anaconda promt window, and activate environment:
 ```console
-~$ conda activate augmented-maskrcnn
+conda activate augmented-maskrcnn
 ```
 
 - Edit config.py for your needs
 
 - Perform training:
 ```console
-~$ python train.py
+python train.py
 ```
 
 - Perform prediction for image "test/test_files/CA/CA01_01.tif" using model "artifacts/maskrcnn-best.pt":
 ```console
-~$ python predcit.py test/test_files/CA/CA01_01.tif artifacts/maskrcnn-best.pt
+python predcit.py test/test_files/CA/CA01_01.tif artifacts/maskrcnn-best.pt
 ```
