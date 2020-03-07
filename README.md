@@ -1,5 +1,5 @@
 # Augmented MaskRCNN
-This repo let's you **easily fine tune pretrained MaskRCNN model with 64 fast image augmentation types using your custom data/annotations, then apply prediction** based on the trained model. Training and inference works both on **Windows & Linux**.
+This repo lets you **easily fine tune pretrained MaskRCNN model with 64 fast image augmentation types using your custom data/annotations, then apply prediction** based on the trained model. Training and inference works both on **Windows & Linux**.
 - [albumentations](https://github.com/albumentations-team/albumentations) is integrated for image augmentation which is [much faster](https://github.com/albumentations-team/albumentations#benchmarking-results) than [imgaug](https://github.com/aleju/imgaug) and **supports 64 augmentation types for images, bounding boxes and masks**
 - Pretrained **resnet50 + feature pyramid** weights on COCO is downloaded upon training
 - **COCO evaluation** is performed after each epoch, during training
