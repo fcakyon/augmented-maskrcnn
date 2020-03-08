@@ -13,8 +13,8 @@ dependencies:
   - pytorch::pytorch>=1.0.1
   - anaconda::cudatoolkit=10.1
   - anaconda::jsonschema>=2.6.0
+  - albumentations::albumentations=0.4.5
   - numpy=1.17
   - pip:
-    - opencv-python 
-    - git+https://github.com/albu/albumentations
+    - opencv-python
     - git+https://github.com/gautamchitnis/cocoapi.git#subdirectory=PythonAPI
