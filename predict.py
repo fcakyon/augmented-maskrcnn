@@ -58,14 +58,15 @@ def get_prediction(image_path: str, model,
     pred = model(image)
 
     # get coco categories
-    COCO_PATH = cfg["COCO_PATH"]
-    with open(COCO_PATH) as json_file:
-        coco_dict = json.load(json_file)
-        COCO_CATEGORIES = coco_dict["categories"]
-    INSTANCE_CATEGORY_NAMES = {
-            COCO_CATEGORY["id"]: COCO_CATEGORY["name"] for
-            COCO_CATEGORY in COCO_CATEGORIES
-            }
+#    COCO_PATH = cfg["COCO_PATH"]
+#    with open(COCO_PATH) as json_file:
+#        coco_dict = json.load(json_file)
+#        COCO_CATEGORIES = coco_dict["categories"]
+#    INSTANCE_CATEGORY_NAMES = {
+#            COCO_CATEGORY["id"]: COCO_CATEGORY["name"] for
+#            COCO_CATEGORY in COCO_CATEGORIES
+#            }
+    INSTANCE_CATEGORY_NAMES = {1: "id_card"}
 
     # get predictions with above threshold prediction scores
     pred_score = list(pred[0]['scores'].detach().numpy())
@@ -82,7 +83,7 @@ def get_prediction(image_path: str, model,
                 i in list(pred[0]['labels'].numpy())
                 ]
         pred_boxes = [
-                [(i[0], i[1]), (i[2], i[3])] for
+                [(int(i[0]), int(i[1])), (int(i[2]), int(i[3]))] for
                 i in list(pred[0]['boxes'].detach().numpy())
                 ]
         if len(masks.shape) == 3:
@@ -100,7 +101,8 @@ def get_prediction(image_path: str, model,
     return masks, pred_boxes, pred_class
 
 
-def visualize_prediction(img_path: str, masks, boxes, pred_cls,
+def visualize_prediction(img_path: str,
+                         masks, boxes, pred_cls,
                          rect_th: float = 3, text_size: float = 3,
                          text_th: float = 3,
                          file_name: str = "inference_result.png"):
@@ -151,7 +153,8 @@ def instance_segmentation_api(image_path: str, weight_path: str):
     # load model
     model = get_model_instance_segmentation(num_classes=2)
     # load model dict
-    model_dict = torch.load(weight_path)
+    DEVICE=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model_dict = torch.load(weight_path, map_location=DEVICE)
     # load weights
     model.load_state_dict(model_dict["state_dict"])
     # load cfg from model dict

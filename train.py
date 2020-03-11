@@ -74,6 +74,9 @@ def train(config=None):
     else:
         cfg = config
 
+    # create artifacts dir if not present
+    create_dir("artifacts/")
+
     # fix the seed for reproduce results
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
