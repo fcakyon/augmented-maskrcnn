@@ -7,13 +7,13 @@ channels:
   - anaconda
 dependencies:
   - python=3.6
-  - pip
+  - pip=19.3.1
   - anaconda::cython
   - pytorch::pytorch>=1.4.0
   - pytorch::torchvision>=0.5.0
   - anaconda::jsonschema>=2.6.0
   - albumentations::albumentations=0.4.5
-  - conda-forge::imgaug=0.2.9
+  - conda-forge::imgaug=0.4.0
   - pip:
     - matplotlib==3.2.0
     - numpy<=1.17.4
