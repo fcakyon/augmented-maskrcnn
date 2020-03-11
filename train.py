@@ -8,6 +8,7 @@ import torch
 import random
 import os
 
+from utils import create_dir
 from dataset import COCODataset
 from config import configurations
 
