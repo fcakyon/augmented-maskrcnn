@@ -166,7 +166,7 @@ def visualize_prediction(image: str,
     if len(masks) > 0:
         for i in range(len(masks)):
             rgb_mask = random_colour_masks(masks[i])
-            image = cv2.addWeighted(image, 1, rgb_mask, 0.5, 0)
+            image = cv2.addWeighted(image, 1, rgb_mask, 0.6, 0)
             cv2.rectangle(image, boxes[i][0], boxes[i][1],
                           color=(0, 255, 0), thickness=rect_th)
             cv2.putText(image, pred_cls[i], boxes[i][0],
