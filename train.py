@@ -8,7 +8,7 @@ import torch
 import random
 import os
 
-from utils import create_dir
+from utils import create_dir, get_category_mapping_froom_coco_file
 from dataset import COCODataset
 from config import configurations
 
@@ -110,6 +110,11 @@ def train(config=None):
 
     # our dataset has two classes only - background and id card
     num_classes = dataset.num_objects + 1
+    cfg["NUM_CLASSES"] = num_classes
+
+    # add category mappings to cfg, will be used at prediction
+    category_mapping = get_category_mapping_froom_coco_file(COCO_PATH)
+    cfg["CATEGORY_MAPPING"] = category_mapping
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()
