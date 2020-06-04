@@ -29,7 +29,7 @@ class Tests(unittest.TestCase):
             "type": "array",
             "items": {
                 "type": "array",
-                "items": {"type": "number",},
+                "items": {"type": "number"},
                 "additionalItems": False,
             },
             "additionalItems": False,
