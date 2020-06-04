@@ -1,6 +1,5 @@
-cython
-git+https://github.com/gautamchitnis/cocoapi.git#subdirectory=PythonAPI
 numpy<=1.17.4
+pycocotools-fix==2.0.0.1
 scikit-image==0.16.2
 jsonschema>=2.6.0
 pytorch>=1.4.0
