@@ -12,15 +12,21 @@ from utils import create_dir, get_category_mapping_froom_coco_file
 from dataset import COCODataset
 from config import configurations
 
-from albumentations import (
-    BboxParams,
-    HorizontalFlip,
-    #VerticalFlip,
+from albumentations.core.composition import BboxParams, Compose
+
+from albumentations.augmentations.transforms import (
+    LongestMaxSize,
+    PadIfNeeded,
+    RandomCrop,
+    ShiftScaleRotate,
     RandomRotate90,
-    RandomBrightness,
+    HorizontalFlip,
+    RandomBrightnessContrast,
+    RandomGamma,
+    HueSaturationValue,
     MotionBlur,
-    Compose,
-    Normalize
+    JpegCompression,
+    Normalize,
 )
 
 
@@ -37,35 +43,59 @@ def get_model_instance_segmentation(num_classes: int):
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
     hidden_layer = 256
     # and replace the mask predictor with a new one
-    model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask,
-                                                       hidden_layer,
-                                                       num_classes)
+    model.roi_heads.mask_predictor = MaskRCNNPredictor(
+        in_features_mask, hidden_layer, num_classes
+    )
 
     return model
 
 
 def get_transform(train: bool) -> Compose:
     transforms = Compose(
-            [Normalize(mean=[0.485, 0.456, 0.406],
-                       std=[0.229, 0.224, 0.225])],
-            bbox_params=BboxParams(format='pascal_voc',
-                                   min_area=0.,
-                                   min_visibility=0.,
-                                   label_fields=['category_id']))
+        [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])],
+        bbox_params=BboxParams(
+            format="pascal_voc",
+            min_area=0.0,
+            min_visibility=0.0,
+            label_fields=["category_id"],
+        ),
+    )
 
     # compose train transforms
     if train:
         transforms = Compose(
-                [Normalize(mean=[0.485, 0.456, 0.406],
-                           std=[0.229, 0.224, 0.225]),
-                 HorizontalFlip(),
-                 RandomRotate90(),
-                 RandomBrightness(),
-                 MotionBlur()],
-                bbox_params=BboxParams(format='pascal_voc',
-                                       min_area=0.,
-                                       min_visibility=0.,
-                                       label_fields=['category_id']))
+            [
+                LongestMaxSize(max_size=768, p=1),
+                PadIfNeeded(min_height=768, min_width=768, border_mode=0, p=1),
+                RandomCrop(height=512, width=512, p=0.5),
+                ShiftScaleRotate(
+                    scale_limit=0.2,
+                    rotate_limit=5,
+                    border_mode=0,
+                    value=0,
+                    mask_value=0,
+                ),
+                HorizontalFlip(p=0.5),
+                RandomRotate90(p=0.5),
+                RandomBrightnessContrast(p=0.5),
+                RandomGamma(p=0.5),
+                HueSaturationValue(p=0.5),
+                MotionBlur(p=0.5),
+                JpegCompression(quality_lower=20, quality_upper=95, p=0.5),
+                Normalize(
+                    max_pixel_value=255.0,
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
+                    p=1,
+                ),
+            ],
+            bbox_params=BboxParams(
+                format="pascal_voc",
+                min_area=0.0,
+                min_visibility=0.0,
+                label_fields=["category_id"],
+            ),
+        )
     return transforms
 
 
@@ -79,7 +109,7 @@ def train(config=None):
     create_dir("artifacts/")
 
     # fix the seed for reproduce results
-    SEED = cfg['SEED']
+    SEED = cfg["SEED"]
     torch.manual_seed(SEED)
     torch.cuda.manual_seed(SEED)
     torch.backends.cudnn.deterministic = True
@@ -103,10 +133,8 @@ def train(config=None):
     device = DEVICE
 
     # use our dataset and defined transformations
-    dataset = COCODataset(DATA_ROOT, COCO_PATH,
-                          get_transform(train=True))
-    dataset_test = COCODataset(DATA_ROOT, COCO_PATH,
-                               get_transform(train=False))
+    dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transform(train=True))
+    dataset_test = COCODataset(DATA_ROOT, COCO_PATH, get_transform(train=False))
 
     # our dataset has two classes only - background and id card
     num_classes = dataset.num_objects + 1
@@ -123,12 +151,20 @@ def train(config=None):
 
     # define training and test data loaders
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS,
-        collate_fn=core.utils.collate_fn)
+        dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=NUM_WORKERS,
+        collate_fn=core.utils.collate_fn,
+    )
 
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=1, shuffle=False, num_workers=NUM_WORKERS,
-        collate_fn=core.utils.collate_fn)
+        dataset_test,
+        batch_size=1,
+        shuffle=False,
+        num_workers=NUM_WORKERS,
+        collate_fn=core.utils.collate_fn,
+    )
 
     # get the model using our helper function
     model = get_model_instance_segmentation(num_classes)
@@ -138,19 +174,15 @@ def train(config=None):
 
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
-                                momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
     # and a learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                   step_size=3,
-                                                   gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     # let's train it for NUM_EPOCH epochs
     for epoch in range(NUM_EPOCH):
         best_bbox_05095_ap = -1
         # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, data_loader, device, epoch,
-                        print_freq=10)
+        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
@@ -158,15 +190,13 @@ def train(config=None):
         # update best model if it has the best bbox 0.50:0.95 AP
         bbox_05095_ap = coco_evaluator.coco_eval["bbox"].stats[0]
         if bbox_05095_ap > best_bbox_05095_ap:
-            save_path = os.path.join(ARTIFACT_DIR,
-                                     EXPERIMENT_NAME + '-best.pt')
+            save_path = os.path.join(ARTIFACT_DIR, EXPERIMENT_NAME + "-best.pt")
             model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
             torch.save(model_dict, save_path)
             best_bbox_05095_ap = bbox_05095_ap
 
     # save final model
-    save_path = os.path.join(ARTIFACT_DIR,
-                             EXPERIMENT_NAME + '-last.pt')
+    save_path = os.path.join(ARTIFACT_DIR, EXPERIMENT_NAME + "-last.pt")
     model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
     torch.save(model_dict, save_path)
 
