@@ -52,8 +52,8 @@ conda activate augmented-maskrcnn
 python train.py
 ```
 
-- Perform prediction for image "test/test_files/CA/CA01_01.tif" using model "artifacts/maskrcnn-best.pt":
+- Perform prediction for image "CA01_01.tif" using model "artifacts/maskrcnn-best.pt":
 
 ```console
-python predcit.py test/test_files/CA/CA01_01.tif artifacts/maskrcnn-best.pt
+python predict.py CA01_01.tif artifacts/maskrcnn-best.pt
 ```
