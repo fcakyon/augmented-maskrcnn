@@ -38,10 +38,11 @@ def get_prediction(
     pred = model(image)
 
     # map prediction ids to labels if category_mapping is given as input
-    if not (category_mapping == {}):
-        INSTANCE_CATEGORY_NAMES = category_mapping
-    else:
-        INSTANCE_CATEGORY_NAMES = {ind: ind for ind in range(999)}
+    def map_category(ind):
+        if not (category_mapping == {}):
+            return category_mapping[str(ind)]
+        else:
+            return str(ind)
 
     # get predictions with above threshold prediction scores
     pred_score = list(pred[0]["scores"].detach().numpy())
@@ -52,9 +53,7 @@ def get_prediction(
     # process predictions if there are any
     if pred_num > 0:
         masks = (pred[0]["masks"] > 0.5).squeeze().detach().cpu().numpy()
-        pred_class = [
-            INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]["labels"].numpy())
-        ]
+        pred_class = [map_category(i) for i in list(pred[0]["labels"].numpy())]
         pred_boxes = [
             [(int(i[0]), int(i[1])), (int(i[2]), int(i[3]))]
             for i in list(pred[0]["boxes"].detach().numpy())
