@@ -37,6 +37,7 @@ class COCODataset(object):
         coco_path: Path to the coco style annotation file.
         transforms: Albumentations compose object.
     """
+
     def __init__(self, root_dir: str, coco_path: str, transforms: Compose):
         self.root_dir = root_dir
         self.transforms = transforms
@@ -62,56 +63,86 @@ class COCODataset(object):
         segmentations = []
         category_ids = []
 
-        for annotation in image_dict["annotations"]:
-            # get segmentation polygons
-            segmentations.append(annotation["segmentation"])
-            # get category id
-            category_id = annotation["category_id"]
-            category_ids.append(category_id)
+        # find if negative sample
+        is_negative_sample = False
+        if len(image_dict["annotations"]) == 0:
+            is_negative_sample = True
 
-        # create masks from coco segmentation polygons
-        masks = convert_coco_poly_to_mask(segmentations,
-                                          height=image.shape[0],
-                                          width=image.shape[1])
+        if not is_negative_sample:
+            for annotation in image_dict["annotations"]:
+                # get segmentation polygons
+                segmentations.append(annotation["segmentation"])
+                # get category id
+                category_id = annotation["category_id"]
+                category_ids.append(category_id)
 
-        # create coco and voc bboxes from coco segmentation polygons
-        (coco_bboxes,
-         voc_bboxes) = convert_coco_poly_to_bbox(segmentations,
-                                                 height=image.shape[0],
-                                                 width=image.shape[1])
+            # create masks from coco segmentation polygons
+            masks = convert_coco_poly_to_mask(
+                segmentations, height=image.shape[0], width=image.shape[1]
+            )
 
-        data = {'image': image, 'bboxes': voc_bboxes,
-                'masks': masks, 'category_id': category_ids}
+            # create coco and voc bboxes from coco segmentation polygons
+            (coco_bboxes, voc_bboxes) = convert_coco_poly_to_bbox(
+                segmentations, height=image.shape[0], width=image.shape[1]
+            )
 
-        if self.transforms is not None:
-            # apply transform
-            augmented = self.transforms(**data)
-            # get augmented image and bboxes
-            image = augmented["image"]
-            voc_bboxes = augmented["bboxes"]
-            category_ids = augmented["category_id"]
+            if self.transforms is not None:
+                # arrange transform data
+                data = {
+                    "image": image,
+                    "bboxes": voc_bboxes,
+                    "masks": masks,
+                    "category_id": category_ids,
+                }
+                # apply transform
+                augmented = self.transforms(**data)
+                # get augmented image and bboxes
+                image = augmented["image"]
+                voc_bboxes = augmented["bboxes"]
+                category_ids = augmented["category_id"]
+                # get masks
+                masks = augmented["masks"]
 
-            # convert everything into a torch.Tensor
-            target = {}
+        # convert everything into a torch.Tensor
+        target = {}
+
+        # boxes
+        if not is_negative_sample:  # positive target
             target["boxes"] = boxes = to_float32_tensor(voc_bboxes)
+        else:  # negative target
+            target["boxes"] = boxes = torch.zeros((0, 4), dtype=torch.float32)
+
+        # labels
+        if not is_negative_sample:  # positive target
             target["labels"] = to_int64_tensor(category_ids)
-            target["masks"] = to_uint8_tensor(augmented["masks"])
-            target["image_id"] = torch.tensor([idx])
-            target["area"] = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-            target["iscrowd"] = torch.zeros((self.num_objects,), dtype=torch.int64)
+        else:  # negative target
+            target["labels"] = torch.zeros(0, dtype=torch.int64)
+
+        # masks
+        if not is_negative_sample:  # positive target
+            target["masks"] = to_uint8_tensor(masks)
+        else:  # negative target
+            target["masks"] = torch.zeros(
+                0, image.shape[0], image.shape[1], dtype=torch.uint8
+            )
+
+        target["area"] = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        target["image_id"] = torch.tensor([idx])
+        target["iscrowd"] = torch.zeros((self.num_objects,), dtype=torch.int64)
 
         return image_to_float_tensor(image), target
 
     def __len__(self):
         return len(self.images)
 
-#class COCODatasetOld(object):
+
+# class COCODatasetOld(object):
 #    """
-#    Compatible with any coco style annotation file, annotations must include 
+#    Compatible with any coco style annotation file, annotations must include
 #    segmentation mask (polygon coordinates). Bboxes are created from masks.
 #    Arguments:
 #        root_dir: Root directory that contains image files. Relative image
-#        file locations from coco file will be joined with this root_dir while 
+#        file locations from coco file will be joined with this root_dir while
 #        iterating.
 #        coco_path: Path to the coco style annotation file.
 #        transforms: Albumentations compose object.
@@ -128,7 +159,7 @@ class COCODataset(object):
 #    def __getitem__(self, idx):
 #        # get one image dict from processed coco file
 #        image_dict = self.images[idx]
-#        
+#
 #        # parse image path
 #        relative_image_path = image_dict["file_name"]
 #        # form absolute image path
@@ -136,7 +167,7 @@ class COCODataset(object):
 #        # load image
 #        image = cv2.imread(abs_image_path)
 #        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-#        
+#
 #        # parse annotations
 #        masks = []
 #        voc_bboxes = []
@@ -155,7 +186,7 @@ class COCODataset(object):
 #            # get category id
 #            category_id = annotation["category_id"]
 #            category_ids.append(category_id)
-#      
+#
 #        data = {'image': image, 'bboxes': voc_bboxes, 'masks': masks, 'category_id': category_ids}
 #
 #        if self.transforms is not None:
@@ -165,7 +196,7 @@ class COCODataset(object):
 #            image = augmented["image"]
 #            voc_bboxes = augmented["bboxes"]
 #            category_ids = augmented["category_id"]
-#            
+#
 #            # convert everything into a torch.Tensor
 #            target = {}
 #            target["boxes"] = boxes = torch.as_tensor(voc_bboxes, dtype=torch.float32)
@@ -180,7 +211,7 @@ class COCODataset(object):
 #    def __len__(self):
 #        return len(self.images)
 
-#class MIDV500Dataset(object):
+# class MIDV500Dataset(object):
 #    def __init__(self, root_dir, coco_path, transforms):
 #        self.root_dir = root_dir
 #        self.transforms = transforms
@@ -193,31 +224,31 @@ class COCODataset(object):
 #    def __getitem__(self, idx):
 #        # get one image dict from processed coco file
 #        image_dict = self.images[idx]
-#        
+#
 #        # parse fields
 #        relative_image_path = image_dict["file_name"]
 #        mask_coords = image_dict["annotations"][0]["segmentation"]
 #        coco_bbox = image_dict["annotations"][0]["bbox"]
 #        voc_bbox = [coco_bbox[0], coco_bbox[1], coco_bbox[0]+coco_bbox[2], coco_bbox[1]+coco_bbox[3]]
 #        category_id = image_dict["annotations"][0]["category_id"]
-#        
+#
 #        # form absolute image path
 #        abs_image_path = os.path.join(self.root_dir, relative_image_path)
-#     
+#
 #        # load image
 #        image = cv2.imread(abs_image_path)
 #        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-#        
+#
 #        # create mask from poly coords
 #        mask_coords = np.array(mask_coords, dtype=np.int32)
 #        mask = np.zeros(image.shape[:2], dtype=np.uint8)
 #        cv2.fillPoly(mask, mask_coords.reshape(-1, 4, 2), color=(1))
-#        
+#
 #
 #        boxes = [voc_bbox]
 #        masks = [mask]
 #        category_ids = [category_id]
-#      
+#
 #        data = {'image': image, 'bboxes': boxes, 'masks': masks, 'category_id': category_ids}
 #
 #        if self.transforms is not None:
@@ -226,7 +257,7 @@ class COCODataset(object):
 #            # get augmented image and bboxes
 #            image = augmented["image"]
 #            bboxes = augmented["bboxes"]
-#            
+#
 #            # convert everything into a torch.Tensor
 #            target = {}
 #            target["boxes"] = boxes = torch.as_tensor(bboxes, dtype=torch.float32)
