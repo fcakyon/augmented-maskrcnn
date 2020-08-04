@@ -30,7 +30,10 @@ class FilterAndRemapCocoCategories(object):
         target["annotations"] = anno
         return image, target
 
-def convert_coco_poly_to_torch_mask(segmentations, height: int, width: int) -> torch.tensor:
+
+def convert_coco_poly_to_torch_mask(
+    segmentations, height: int, width: int
+) -> torch.tensor:
     """
     Converts polygons in COCO format to masks with size height*width. Result
     is returned as a torch tensor.
@@ -56,6 +59,7 @@ def convert_coco_poly_to_torch_mask(segmentations, height: int, width: int) -> t
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
     return masks
 
+
 def convert_coco_poly_to_mask(segmentations, height: int, width: int) -> list:
     """
     Converts polygons in COCO format to masks with size height*width.
@@ -64,7 +68,7 @@ def convert_coco_poly_to_mask(segmentations, height: int, width: int) -> list:
         height: Height of the target image.
         width: Width of the target image.
     Returns: 
-        masks: List of masks.
+        masks: List of masks with elemnts of type np.uint8.
     """
     masks = []
     for polygons in segmentations:
@@ -72,9 +76,9 @@ def convert_coco_poly_to_mask(segmentations, height: int, width: int) -> list:
         mask = coco_mask.decode(rles)
         if len(mask.shape) < 3:
             mask = mask[..., None]
-        mask = mask.any(axis=2)
+        mask = mask.any(axis=2).astype(np.uint8)
         masks.append(mask)
-    if not(masks):
+    if not (masks):
         masks = np.zeros((0, height, width))
     return masks
 
@@ -88,7 +92,7 @@ class ConvertCocoPolysToMask(object):
 
         anno = target["annotations"]
 
-        anno = [obj for obj in anno if obj['iscrowd'] == 0]
+        anno = [obj for obj in anno if obj["iscrowd"] == 0]
 
         boxes = [obj["bbox"] for obj in anno]
         # guard against no boxes via resizing
@@ -179,7 +183,7 @@ def convert_to_coco_api(ds):
     coco_ds = COCO()
     # annotation IDs need to start at 1, not 0, see torchvision issue #1530
     ann_id = 1
-    dataset = {'images': [], 'categories': [], 'annotations': []}
+    dataset = {"images": [], "categories": [], "annotations": []}
     categories = set()
     for img_idx in range(len(ds)):
         # find better way to get target
@@ -187,41 +191,41 @@ def convert_to_coco_api(ds):
         img, targets = ds[img_idx]
         image_id = targets["image_id"].item()
         img_dict = {}
-        img_dict['id'] = image_id
-        img_dict['height'] = img.shape[-2]
-        img_dict['width'] = img.shape[-1]
-        dataset['images'].append(img_dict)
+        img_dict["id"] = image_id
+        img_dict["height"] = img.shape[-2]
+        img_dict["width"] = img.shape[-1]
+        dataset["images"].append(img_dict)
         bboxes = targets["boxes"]
         bboxes[:, 2:] -= bboxes[:, :2]
         bboxes = bboxes.tolist()
-        labels = targets['labels'].tolist()
-        areas = targets['area'].tolist()
-        iscrowd = targets['iscrowd'].tolist()
-        if 'masks' in targets:
-            masks = targets['masks']
+        labels = targets["labels"].tolist()
+        areas = targets["area"].tolist()
+        iscrowd = targets["iscrowd"].tolist()
+        if "masks" in targets:
+            masks = targets["masks"]
             # make masks Fortran contiguous for coco_mask
             masks = masks.permute(0, 2, 1).contiguous().permute(0, 2, 1)
-        if 'keypoints' in targets:
-            keypoints = targets['keypoints']
+        if "keypoints" in targets:
+            keypoints = targets["keypoints"]
             keypoints = keypoints.reshape(keypoints.shape[0], -1).tolist()
         num_objs = len(bboxes)
         for i in range(num_objs):
             ann = {}
-            ann['image_id'] = image_id
-            ann['bbox'] = bboxes[i]
-            ann['category_id'] = labels[i]
+            ann["image_id"] = image_id
+            ann["bbox"] = bboxes[i]
+            ann["category_id"] = labels[i]
             categories.add(labels[i])
-            ann['area'] = areas[i]
-            ann['iscrowd'] = iscrowd[i]
-            ann['id'] = ann_id
-            if 'masks' in targets:
+            ann["area"] = areas[i]
+            ann["iscrowd"] = iscrowd[i]
+            ann["id"] = ann_id
+            if "masks" in targets:
                 ann["segmentation"] = coco_mask.encode(masks[i].numpy())
-            if 'keypoints' in targets:
-                ann['keypoints'] = keypoints[i]
-                ann['num_keypoints'] = sum(k != 0 for k in keypoints[i][2::3])
-            dataset['annotations'].append(ann)
+            if "keypoints" in targets:
+                ann["keypoints"] = keypoints[i]
+                ann["num_keypoints"] = sum(k != 0 for k in keypoints[i][2::3])
+            dataset["annotations"].append(ann)
             ann_id += 1
-    dataset['categories'] = [{'id': i} for i in sorted(categories)]
+    dataset["categories"] = [{"id": i} for i in sorted(categories)]
     coco_ds.dataset = dataset
     coco_ds.createIndex()
     return coco_ds
@@ -252,11 +256,17 @@ class CocoDetection(torchvision.datasets.CocoDetection):
         return img, target
 
 
-def get_coco(root, image_set, transforms, mode='instances'):
+def get_coco(root, image_set, transforms, mode="instances"):
     anno_file_template = "{}_{}2017.json"
     PATHS = {
-        "train": ("train2017", os.path.join("annotations", anno_file_template.format(mode, "train"))),
-        "val": ("val2017", os.path.join("annotations", anno_file_template.format(mode, "val"))),
+        "train": (
+            "train2017",
+            os.path.join("annotations", anno_file_template.format(mode, "train")),
+        ),
+        "val": (
+            "val2017",
+            os.path.join("annotations", anno_file_template.format(mode, "val")),
+        ),
         # "train": ("val2017", os.path.join("annotations", anno_file_template.format(mode, "val")))
     }
 
@@ -283,6 +293,7 @@ def get_coco(root, image_set, transforms, mode='instances'):
 def get_coco_kp(root, image_set, transforms):
     return get_coco(root, image_set, transforms, mode="person_keypoints")
 
+
 def coco_seg2bbox(polygons, image_height: int, image_width: int) -> list:
     """Converts polygons in COCO format to bounding box in pixels.
     Args:
@@ -297,7 +308,10 @@ def coco_seg2bbox(polygons, image_height: int, image_width: int) -> list:
 
     return bbox[0].astype(int).tolist()
 
-def convert_coco_poly_to_torch_bbox(segmentations: list, height: int, width: int) -> (torch.tensor, torch.tensor):
+
+def convert_coco_poly_to_torch_bbox(
+    segmentations: list, height: int, width: int
+) -> (torch.tensor, torch.tensor):
     """
     Converts polygons in COCO format to bounding box in pixels. Returns
     bounding box coords in both COCO and VOC format. Results are returned as
@@ -317,16 +331,24 @@ def convert_coco_poly_to_torch_bbox(segmentations: list, height: int, width: int
         coco_bbox = coco_seg2bbox(segmentation, height, width)
         coco_bboxes.append(coco_bbox)
         # calculate voc bbox
-        voc_bbox = [coco_bbox[0], coco_bbox[1], coco_bbox[0]+coco_bbox[2], coco_bbox[1]+coco_bbox[3]]
+        voc_bbox = [
+            coco_bbox[0],
+            coco_bbox[1],
+            coco_bbox[0] + coco_bbox[2],
+            coco_bbox[1] + coco_bbox[3],
+        ]
         voc_bboxes.append(voc_bbox)
-        
+
     # convert bboxes to torch tensors
     coco_bboxes = torch.as_tensor(coco_bboxes, dtype=torch.float32)
     voc_bboxes = torch.as_tensor(voc_bboxes, dtype=torch.float32)
-    
+
     return coco_bboxes, voc_bboxes
 
-def convert_coco_poly_to_bbox(segmentations: list, height: int, width: int) -> (list, list):
+
+def convert_coco_poly_to_bbox(
+    segmentations: list, height: int, width: int
+) -> (list, list):
     """
     Converts polygons in COCO format to bounding box in pixels. Returns
     bounding box coords in both COCO and VOC format.
@@ -345,7 +367,12 @@ def convert_coco_poly_to_bbox(segmentations: list, height: int, width: int) -> (
         coco_bbox = coco_seg2bbox(segmentation, height, width)
         coco_bboxes.append(coco_bbox)
         # calculate voc bbox
-        voc_bbox = [coco_bbox[0], coco_bbox[1], coco_bbox[0]+coco_bbox[2], coco_bbox[1]+coco_bbox[3]]
+        voc_bbox = [
+            coco_bbox[0],
+            coco_bbox[1],
+            coco_bbox[0] + coco_bbox[2],
+            coco_bbox[1] + coco_bbox[3],
+        ]
         voc_bboxes.append(voc_bbox)
-    
+
     return coco_bboxes, voc_bboxes

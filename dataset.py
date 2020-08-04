@@ -45,7 +45,7 @@ class COCODataset(object):
         images, categories = process_coco(coco_path)
         self.images = images
         self.categories = categories
-        self.num_objects = len(self.categories)
+        self.num_classes = len(self.categories)
 
     def __getitem__(self, idx):
         # get one image dict from processed coco file
@@ -67,6 +67,7 @@ class COCODataset(object):
         is_negative_sample = False
         if len(image_dict["annotations"]) == 0:
             is_negative_sample = True
+            voc_bboxes = []
 
         if not is_negative_sample:
             for annotation in image_dict["annotations"]:
@@ -107,7 +108,9 @@ class COCODataset(object):
         target = {}
 
         # boxes
-        if not is_negative_sample:  # positive target
+        if (not is_negative_sample) and (
+            not voc_bboxes == []
+        ):  # if not negative taret and voc_bboxes is not empty
             target["boxes"] = boxes = to_float32_tensor(voc_bboxes)
         else:  # negative target
             target["boxes"] = boxes = torch.zeros((0, 4), dtype=torch.float32)
@@ -128,7 +131,8 @@ class COCODataset(object):
 
         target["area"] = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
         target["image_id"] = torch.tensor([idx])
-        target["iscrowd"] = torch.zeros((self.num_objects,), dtype=torch.int64)
+        num_objects = len(target["boxes"])
+        target["iscrowd"] = torch.zeros((num_objects,), dtype=torch.int64)
 
         return image_to_float_tensor(image), target
 

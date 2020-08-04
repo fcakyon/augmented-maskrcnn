@@ -67,7 +67,7 @@ def get_transform(train: bool) -> Compose:
             [
                 LongestMaxSize(max_size=768, p=1),
                 PadIfNeeded(min_height=768, min_width=768, border_mode=0, p=1),
-                RandomCrop(height=512, width=512, p=0.5),
+                RandomCrop(height=256, width=256, p=0.5),
                 ShiftScaleRotate(
                     scale_limit=0.2,
                     rotate_limit=5,
@@ -137,7 +137,7 @@ def train(config=None):
     dataset_test = COCODataset(DATA_ROOT, COCO_PATH, get_transform(train=False))
 
     # our dataset has two classes only - background and id card
-    num_classes = dataset.num_objects + 1
+    num_classes = dataset.num_classes + 1
     cfg["NUM_CLASSES"] = num_classes
 
     # add category mappings to cfg, will be used at prediction
@@ -146,8 +146,11 @@ def train(config=None):
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()
-    dataset = torch.utils.data.Subset(dataset, indices[:-50])
-    dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
+    num_train = int(len(indices)*0.8)
+    train_indices = indices[:num_train]
+    test_indices = indices[num_train:]
+    dataset = torch.utils.data.Subset(dataset, train_indices)
+    dataset_test = torch.utils.data.Subset(dataset_test, test_indices)
 
     # define training and test data loaders
     data_loader = torch.utils.data.DataLoader(
