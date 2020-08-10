@@ -8,13 +8,14 @@ channels:
 dependencies:
   - python=3.6
   - pip=19.3.1
+  - anaconda::cython
   - pytorch::pytorch>=1.6.0
   - pytorch::torchvision>=0.7.0
-  - anaconda::jsonschema>=2.6.0
   - conda-forge::imgaug=0.4.0
   - pip:
+    - git+https://github.com/gautamchitnis/cocoapi.git#subdirectory=PythonAPI
     - numpy<=1.17.4
     - scikit-image==0.16.2
-    - pycocotools-fix==2.0.0.9
     - jsonschema>=2.6.0
     - albumentations==0.4.6
+    - tensorboard==2.0.0
