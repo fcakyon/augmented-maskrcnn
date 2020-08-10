@@ -1,6 +1,8 @@
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
+from torchvision.models.detection.rpn import AnchorGenerator
+from torch.utils.tensorboard import SummaryWriter
 
 from core.engine import train_one_epoch, evaluate
 import core.utils
@@ -17,7 +19,7 @@ from albumentations.core.composition import BboxParams, Compose
 from albumentations.augmentations.transforms import (
     LongestMaxSize,
     PadIfNeeded,
-    RandomCrop,
+    RandomSizedBBoxSafeCrop,
     ShiftScaleRotate,
     RandomRotate90,
     HorizontalFlip,
@@ -30,9 +32,38 @@ from albumentations.augmentations.transforms import (
 )
 
 
+class Directories:
+    """
+    Arranges paths and directories for last_weight_path, best_weight_path, tensorboard_dir
+    """
+    experiments_dir = "experiments"
+
+    def __init__(self, experiment_name, experiments_dir=experiments_dir):
+        self.last_weight_path = os.path.join(experiments_dir, experiment_name, "maskrcnn-last.pt")
+        self.best_weight_path = os.path.join(experiments_dir, experiment_name, "maskrcnn-best.pt")
+        self.tensorboard_dir = os.path.join(experiments_dir, experiment_name, "summary")
+
+        last_weight_dir = os.path.dirname(self.last_weight_path)
+        best_weight_dir = os.path.dirname(self.best_weight_path)
+
+        create_dir(experiments_dir)
+        create_dir(last_weight_dir)
+        create_dir(best_weight_dir)
+
+
 def get_model_instance_segmentation(num_classes: int):
     # load an instance segmentation model pre-trained on COCO
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
+    anchor_sizes = ((8,), (16,), (32,), (64,), (128,))
+    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+    rpn_anchor_generator = AnchorGenerator(
+        anchor_sizes, aspect_ratios
+    )
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn(
+        pretrained=True,
+        rpn_anchor_generator=rpn_anchor_generator,
+        rpn_fg_iou_thresh=0.5
+    )
+    # model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
 
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -67,21 +98,14 @@ def get_transform(train: bool) -> Compose:
             [
                 LongestMaxSize(max_size=768, p=1),
                 PadIfNeeded(min_height=768, min_width=768, border_mode=0, p=1),
-                RandomCrop(height=256, width=256, p=0.5),
-                ShiftScaleRotate(
-                    scale_limit=0.2,
-                    rotate_limit=5,
-                    border_mode=0,
-                    value=0,
-                    mask_value=0,
-                ),
+                RandomSizedBBoxSafeCrop(height=768, width=768, p=0.5),
                 HorizontalFlip(p=0.5),
-                RandomRotate90(p=0.5),
-                RandomBrightnessContrast(p=0.5),
-                RandomGamma(p=0.5),
-                HueSaturationValue(p=0.5),
-                MotionBlur(p=0.5),
-                JpegCompression(quality_lower=20, quality_upper=95, p=0.5),
+                RandomRotate90(p=0),
+                RandomBrightnessContrast(p=0.3),
+                RandomGamma(p=0),
+                HueSaturationValue(p=0),
+                MotionBlur(p=0),
+                JpegCompression(quality_lower=20, quality_upper=95, p=0),
                 Normalize(
                     max_pixel_value=255.0,
                     mean=[0.485, 0.456, 0.406],
@@ -105,9 +129,6 @@ def train(config=None):
     else:
         cfg = config
 
-    # create artifacts dir if not present
-    create_dir("artifacts/")
-
     # fix the seed for reproduce results
     SEED = cfg["SEED"]
     torch.manual_seed(SEED)
@@ -120,14 +141,22 @@ def train(config=None):
     DATA_ROOT = cfg["DATA_ROOT"]
     COCO_PATH = cfg["COCO_PATH"]
 
-    ARTIFACT_DIR = cfg["ARTIFACT_DIR"]
     EXPERIMENT_NAME = cfg["EXPERIMENT_NAME"]
+    PRINT_FREQ = cfg["PRINT_FREQ"]
+    OPTIMIZER = cfg["OPTIMIZER"]
+    LEARNING_RATE = cfg["LEARNING_RATE"]
 
     BATCH_SIZE = cfg["BATCH_SIZE"]
     NUM_EPOCH = cfg["NUM_EPOCH"]
 
     DEVICE = cfg["DEVICE"]
     NUM_WORKERS = cfg["NUM_WORKERS"]
+
+    # init directories
+    directories = Directories(experiment_name=EXPERIMENT_NAME)
+
+    # init tensorboard summary writer
+    writer = SummaryWriter(directories.tensorboard_dir)
 
     # train on the GPU or on the CPU, if a GPU is not available
     device = DEVICE
@@ -149,6 +178,7 @@ def train(config=None):
     num_train = int(len(indices)*0.8)
     train_indices = indices[:num_train]
     test_indices = indices[num_train:]
+
     dataset = torch.utils.data.Subset(dataset, train_indices)
     dataset_test = torch.utils.data.Subset(dataset_test, test_indices)
 
@@ -177,7 +207,12 @@ def train(config=None):
 
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+    if OPTIMIZER == "sgd":
+        optimizer = OPTIMIZER=torch.optim.SGD(params, lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0005)
+    elif OPTIMIZER == "adam":
+        optimizer = torch.optim.Adam(params, lr=LEARNING_RATE, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0005, amsgrad=False)
+    else:
+        Exception("Invalid OPTIMIZER, try: 'adam' or 'sgd'")
     # and a learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
@@ -185,7 +220,7 @@ def train(config=None):
     for epoch in range(NUM_EPOCH):
         best_bbox_05095_ap = -1
         # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
+        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=PRINT_FREQ, writer=writer)
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
@@ -193,15 +228,13 @@ def train(config=None):
         # update best model if it has the best bbox 0.50:0.95 AP
         bbox_05095_ap = coco_evaluator.coco_eval["bbox"].stats[0]
         if bbox_05095_ap > best_bbox_05095_ap:
-            save_path = os.path.join(ARTIFACT_DIR, EXPERIMENT_NAME + "-best.pt")
             model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
-            torch.save(model_dict, save_path)
+            torch.save(model_dict, directories.best_weight_path)
             best_bbox_05095_ap = bbox_05095_ap
 
     # save final model
-    save_path = os.path.join(ARTIFACT_DIR, EXPERIMENT_NAME + "-last.pt")
     model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
-    torch.save(model_dict, save_path)
+    torch.save(model_dict, directories.last_weight_path)
 
 
 if __name__ == "__main__":
