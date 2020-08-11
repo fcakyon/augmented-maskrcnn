@@ -104,6 +104,11 @@ class COCODataset(object):
                 # get masks
                 masks = augmented["masks"]
 
+        # check again if augmentation result is negative sample
+        if (not is_negative_sample) and (self.transforms is not None):
+            if len(augmented["bboxes"]) == 0:
+                is_negative_sample = True
+
         # convert everything into a torch.Tensor
         target = {}
 
