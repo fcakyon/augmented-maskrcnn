@@ -51,7 +51,7 @@ class Directories:
         create_dir(best_weight_dir)
 
 
-def get_model_instance_segmentation(num_classes: int):
+def get_model_instance_segmentation(num_classes: int = 91, trainable_backbone_layers: int = 3):
     # load an instance segmentation model pre-trained on COCO
     anchor_sizes = ((8,), (16,), (32,), (64,), (128,))
     aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
@@ -59,6 +59,7 @@ def get_model_instance_segmentation(num_classes: int):
         anchor_sizes, aspect_ratios
     )
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(
+        trainable_backbone_layers=trainable_backbone_layers
         pretrained=True,
         rpn_anchor_generator=rpn_anchor_generator,
         rpn_fg_iou_thresh=0.5
@@ -142,6 +143,7 @@ def train(config=None):
     COCO_PATH = cfg["COCO_PATH"]
 
     EXPERIMENT_NAME = cfg["EXPERIMENT_NAME"]
+    TRAINABLE_BACKBONE_LAYERS = cfg["TRAINABLE_BACKBONE_LAYERS"]
     PRINT_FREQ = cfg["PRINT_FREQ"]
     OPTIMIZER = cfg["OPTIMIZER"]
     LEARNING_RATE = cfg["LEARNING_RATE"]
@@ -200,7 +202,7 @@ def train(config=None):
     )
 
     # get the model using our helper function
-    model = get_model_instance_segmentation(num_classes)
+    model = get_model_instance_segmentation(num_classes, TRAINABLE_BACKBONE_LAYERS)
 
     # move model to the right device
     model.to(device)
