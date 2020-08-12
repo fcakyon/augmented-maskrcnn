@@ -59,7 +59,7 @@ def get_model_instance_segmentation(num_classes: int = 91, trainable_backbone_la
         anchor_sizes, aspect_ratios
     )
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(
-        trainable_backbone_layers=trainable_backbone_layers
+        trainable_backbone_layers=trainable_backbone_layers,
         pretrained=True,
         rpn_anchor_generator=rpn_anchor_generator,
         rpn_fg_iou_thresh=0.5
