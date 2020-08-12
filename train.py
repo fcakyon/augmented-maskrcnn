@@ -219,12 +219,15 @@ def train(config=None):
     # let's train it for NUM_EPOCH epochs
     for epoch in range(NUM_EPOCH):
         best_bbox_05095_ap = -1
-        # train for one epoch, printing every 10 iterations
+        # train for one epoch, printing every PRINT_FREQ iterations
         train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=PRINT_FREQ, writer=writer)
         # update the learning rate
         lr_scheduler.step()
-        # evaluate on the test dataset
-        coco_evaluator = evaluate(model, data_loader_test, device=device)
+        # get iteration number
+        num_images = len(data_loader.dataset)
+        iter_num = epoch*num_images
+        # evaluate on the val dataset
+        loss_lists, coco_evaluator = evaluate(model, data_loader_test, device=device, iter_num=iter_num, writer=writer)
         # update best model if it has the best bbox 0.50:0.95 AP
         bbox_05095_ap = coco_evaluator.coco_eval["bbox"].stats[0]
         if bbox_05095_ap > best_bbox_05095_ap:
