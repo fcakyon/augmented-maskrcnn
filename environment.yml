@@ -13,7 +13,7 @@ dependencies:
   - pytorch::torchvision>=0.7.0
   - conda-forge::imgaug=0.4.0
   - pip:
-    - git+https://github.com/gautamchitnis/cocoapi.git#subdirectory=PythonAPI
+    - git+https://github.com/gautamchitnis/cocoapi.git@cocodataset-master#subdirectory=PythonAPI
     - numpy<=1.17.4
     - scikit-image==0.16.2
     - jsonschema>=2.6.0
