@@ -147,7 +147,9 @@ def train(config=None):
     PRINT_FREQ = cfg["PRINT_FREQ"]
     OPTIMIZER = cfg["OPTIMIZER"]
     LEARNING_RATE = cfg["LEARNING_RATE"]
+    WEIGHT_DECAY = cfg["WEIGHT_DECAY"]
 
+    TRAIN_SPLIT_RATE = cfg["TRAIN_SPLIT_RATE"]
     BATCH_SIZE = cfg["BATCH_SIZE"]
     NUM_EPOCH = cfg["NUM_EPOCH"]
 
@@ -161,7 +163,10 @@ def train(config=None):
     writer = SummaryWriter(directories.tensorboard_dir)
 
     # train on the GPU or on the CPU, if a GPU is not available
-    device = DEVICE
+    device = torch.device(DEVICE)
+    if "cuda" in DEVICE and not torch.cuda.is_available():
+        print("CUDA not available, switching to CPU")
+        device = torch.device("cpu")
 
     # use our dataset and defined transformations
     dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transform(train=True))
@@ -177,7 +182,7 @@ def train(config=None):
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()
-    num_train = int(len(indices)*0.8)
+    num_train = int(len(indices)*TRAIN_SPLIT_RATE)
     train_indices = indices[:num_train]
     test_indices = indices[num_train:]
 
@@ -210,9 +215,9 @@ def train(config=None):
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
     if OPTIMIZER == "sgd":
-        optimizer = OPTIMIZER=torch.optim.SGD(params, lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0005)
+        optimizer = OPTIMIZER=torch.optim.SGD(params, lr=LEARNING_RATE, momentum=0.9, weight_decay=WEIGHT_DECAY)
     elif OPTIMIZER == "adam":
-        optimizer = torch.optim.Adam(params, lr=LEARNING_RATE, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0005, amsgrad=False)
+        optimizer = torch.optim.Adam(params, lr=LEARNING_RATE, betas=(0.9, 0.999), eps=1e-08, weight_decay=WEIGHT_DECAY, amsgrad=False)
     else:
         Exception("Invalid OPTIMIZER, try: 'adam' or 'sgd'")
     # and a learning rate scheduler
