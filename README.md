@@ -44,7 +44,7 @@ python -m unittest
 conda activate augmented-maskrcnn
 ```
 
-- Create a config yml file similar to [configs/default_config.yml](default_config.yml) for your needs
+- Create a config yml file similar to [default_config.yml](configs/default_config.yml) for your needs
 
 - Perform training by giving the config path as argument:
 
