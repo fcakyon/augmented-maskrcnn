@@ -14,7 +14,7 @@ def calculate_mean(data_list):
     """
     Calculates mean from given list with float/int elements
     """
-    data_mean = sum(data for data in data_list)/len(data_list)
+    data_mean = sum(data for data in data_list) / len(data_list)
     return data_mean
 
 
@@ -59,26 +59,26 @@ class LossLists:
         self.__init__(self)
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, writer):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, log_freq, writer):
     # init loss lists instance
     loss_lists = LossLists()
 
     # init metric logger and model mode
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
-    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    header = 'Epoch: [{}]'.format(epoch)
+    metric_logger.add_meter("lr", utils.SmoothedValue(window_size=1, fmt="{value:.6f}"))
+    header = "Epoch: [{}]".format(epoch)
 
     lr_scheduler = None
     if epoch == 0:
-        warmup_factor = 1. / 1000
+        warmup_factor = 1.0 / 1000
         warmup_iters = min(1000, len(data_loader) - 1)
 
         lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
     iter_num = 0
     num_images = len(data_loader.dataset)
-    for images, targets in metric_logger.log_every(data_loader, print_freq, header):
+    for images, targets in metric_logger.log_every(data_loader, log_freq, header):
 
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -90,36 +90,36 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, wr
         loss_dict_reduced, losses_reduced = loss_lists.append_loss_dict(loss_dict)
 
         # log stats for tensorboard
-        if iter_num % print_freq == 0:
+        if iter_num % log_freq == 0:
             writer.add_scalar(
-                'overall loss/train',
+                "overall loss/train",
                 loss_lists.overall_loss_mean,
-                epoch * num_images + iter_num
+                epoch * num_images + iter_num,
             )
             writer.add_scalar(
-                'classifier loss/train',
+                "classifier loss/train",
                 loss_lists.loss_classifier_mean,
-                epoch * num_images + iter_num
+                epoch * num_images + iter_num,
             )
             writer.add_scalar(
-                'box reg loss/train',
+                "box reg loss/train",
                 loss_lists.loss_box_reg_mean,
-                epoch * num_images + iter_num
+                epoch * num_images + iter_num,
             )
             writer.add_scalar(
-                'mask loss/train',
+                "mask loss/train",
                 loss_lists.loss_mask_mean,
-                epoch * num_images + iter_num
+                epoch * num_images + iter_num,
             )
             writer.add_scalar(
-                'objectness loss/train',
+                "objectness loss/train",
                 loss_lists.loss_objectness_mean,
-                epoch * num_images + iter_num
+                epoch * num_images + iter_num,
             )
             writer.add_scalar(
-                'learning rate/learning rate',
+                "learning rate/learning rate",
                 optimizer.param_groups[0]["lr"],
-                epoch * num_images + iter_num
+                epoch * num_images + iter_num,
             )
 
         loss_value = losses_reduced.item()
@@ -159,9 +159,10 @@ def _calculate_val_loss(data_loader, model, device, iter_num, writer):
 
     # init loss lists instance
     loss_lists = LossLists()
-    
-    val_loss = 0
-    for images, targets in metric_logger.log_every(data_loader, print_freq=100, header='Val Loss:'):
+
+    for images, targets in metric_logger.log_every(
+        data_loader, print_freq=100, header="Val Loss:"
+    ):
 
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -171,33 +172,14 @@ def _calculate_val_loss(data_loader, model, device, iter_num, writer):
         _, _ = loss_lists.append_loss_dict(loss_dict)
 
     # log stats for tensorboard
-    writer.add_scalar(
-        'overall loss/val',
-        loss_lists.overall_loss_mean,
-        iter_num
-    )
-    writer.add_scalar(
-        'classifier loss/val',
-        loss_lists.loss_classifier_mean,
-        iter_num
-    )
-    writer.add_scalar(
-        'box reg loss/val',
-        loss_lists.loss_box_reg_mean,
-        iter_num
-    )
-    writer.add_scalar(
-        'mask loss/val',
-        loss_lists.loss_mask_mean,
-        iter_num
-    )
-    writer.add_scalar(
-        'objectness loss/val',
-        loss_lists.loss_objectness_mean,
-        iter_num
-    )
+    writer.add_scalar("overall loss/val", loss_lists.overall_loss_mean, iter_num)
+    writer.add_scalar("classifier loss/val", loss_lists.loss_classifier_mean, iter_num)
+    writer.add_scalar("box reg loss/val", loss_lists.loss_box_reg_mean, iter_num)
+    writer.add_scalar("mask loss/val", loss_lists.loss_mask_mean, iter_num)
+    writer.add_scalar("objectness loss/val", loss_lists.loss_objectness_mean, iter_num)
 
     return loss_lists
+
 
 def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
     n_threads = torch.get_num_threads()
@@ -211,8 +193,9 @@ def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
 
-    num_images = len(data_loader.dataset)
-    for images, targets in metric_logger.log_every(data_loader, 100, header='Val COCO:'):
+    for images, targets in metric_logger.log_every(
+        data_loader, 100, header="Val COCO:"
+    ):
         images = list(img.to(device) for img in images)
 
         if device == "cuda":
@@ -223,7 +206,10 @@ def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
 
-        res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
+        res = {
+            target["image_id"].item(): output
+            for target, output in zip(targets, outputs)
+        }
         evaluator_time = time.time()
         coco_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
@@ -241,65 +227,68 @@ def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
 
     # log stats for tensorboard
     writer.add_scalar(
-        'coco eval bbox/val AP@0.50:0.95, all area',
+        "coco eval bbox/val AP@0.50:0.95, all area",
         coco_evaluator.coco_eval["bbox"].stats[0],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval bbox/val AP@0.50, all area',
+        "coco eval bbox/val AP@0.50, all area",
         coco_evaluator.coco_eval["bbox"].stats[1],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval bbox/val AP@0.50:0.95, small area',
+        "coco eval bbox/val AP@0.50:0.95, small area",
         coco_evaluator.coco_eval["bbox"].stats[3],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval bbox/val AP@0.50:0.95, medium area',
+        "coco eval bbox/val AP@0.50:0.95, medium area",
         coco_evaluator.coco_eval["bbox"].stats[4],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval bbox/val AP@0.50:0.95, large area',
+        "coco eval bbox/val AP@0.50:0.95, large area",
         coco_evaluator.coco_eval["bbox"].stats[5],
-        iter_num
+        iter_num,
     )
 
     writer.add_scalar(
-        'coco eval segm/val AP@0.50:0.95, all area',
+        "coco eval segm/val AP@0.50:0.95, all area",
         coco_evaluator.coco_eval["segm"].stats[0],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval segm/val AP@0.50, all area',
+        "coco eval segm/val AP@0.50, all area",
         coco_evaluator.coco_eval["segm"].stats[1],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval segm/val AP@0.50:0.95, small area',
+        "coco eval segm/val AP@0.50:0.95, small area",
         coco_evaluator.coco_eval["segm"].stats[3],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval segm/val AP@0.50:0.95, medium area',
+        "coco eval segm/val AP@0.50:0.95, medium area",
         coco_evaluator.coco_eval["segm"].stats[4],
-        iter_num
+        iter_num,
     )
     writer.add_scalar(
-        'coco eval segm/val AP@0.50:0.95, large area',
+        "coco eval segm/val AP@0.50:0.95, large area",
         coco_evaluator.coco_eval["segm"].stats[5],
-        iter_num
+        iter_num,
     )
 
     return coco_evaluator
+
 
 @torch.no_grad()
 def evaluate(model, data_loader, device, iter_num, writer):
     # calculate validation loss
     loss_lists = _calculate_val_loss(data_loader, model, device, iter_num, writer)
-    
+
     # calculate validation coco ap
-    coco_evaluator = _calculate_val_coco_ap(data_loader, model, device, iter_num, writer)
-    
+    coco_evaluator = _calculate_val_coco_ap(
+        data_loader, model, device, iter_num, writer
+    )
+
     return loss_lists, coco_evaluator
