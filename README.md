@@ -44,12 +44,12 @@ python -m unittest
 conda activate augmented-maskrcnn
 ```
 
-- Edit config.py for your needs
+- Create a config yml file similar to [configs/default_config.yml](default_config.yml) for your needs
 
-- Perform training:
+- Perform training by giving the config path as argument:
 
 ```console
-python train.py
+python train.py configs/default_config.yml
 ```
 
 - Perform prediction for image "CA01_01.tif" using model "artifacts/maskrcnn-best.pt":
