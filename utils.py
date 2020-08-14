@@ -5,6 +5,7 @@ import yaml
 import random
 import jsonschema
 import numpy as np
+from collections import namedtuple
 
 image_schema = {
     "type": "object",
@@ -212,3 +213,19 @@ def read_yaml(yaml_path):
         yaml_data = yaml.load(f, Loader=yaml.FullLoader)
 
     return yaml_data
+
+
+class Configuration:
+    current_file_path = os.path.dirname(os.path.realpath(__file__))
+    default_config_path = os.path.join(
+        current_file_path, "configs", "default_config.yml"
+    )
+
+    def __init__(
+        self, config_path: str = None, default_config_path=default_config_path
+    ):
+        base_config = read_yaml(default_config_path)  # read base config
+        if config_path is not None:
+            config = read_yaml(config_path)
+            base_config.update(config)  # overwrite base config
+        self.as_dict = base_config  # set overwritten config

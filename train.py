@@ -1,15 +1,17 @@
 import torch
 import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
-from torchvision.models.detection.rpn import AnchorGenerator
 from torch.utils.tensorboard import SummaryWriter
 
 from core.engine import train_one_epoch, evaluate
 import core.utils
-from utils import create_dir, read_yaml, get_category_mapping_froom_coco_file
+from utils import (
+    create_dir,
+    get_category_mapping_froom_coco_file,
+    Configuration,
+)
 from transform import get_transforms
 from dataset import COCODataset
+from model import get_torchvision_maskrcnn
 
 import argparse
 import random
@@ -40,42 +42,9 @@ class Directories:
         create_dir(best_weight_dir)
 
 
-def get_model_instance_segmentation(
-    num_classes: int = 91, trainable_backbone_layers: int = 3
-):
-    # load an instance segmentation model pre-trained on COCO
-    anchor_sizes = ((8,), (16,), (32,), (64,), (128,))
-    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
-    rpn_anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(
-        trainable_backbone_layers=trainable_backbone_layers,
-        pretrained=True,
-        rpn_anchor_generator=rpn_anchor_generator,
-        rpn_fg_iou_thresh=0.5,
-    )
-    # model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
-
-    # get number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-
-    # now get the number of input features for the mask classifier
-    in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-    hidden_layer = 256
-    # and replace the mask predictor with a new one
-    model.roi_heads.mask_predictor = MaskRCNNPredictor(
-        in_features_mask, hidden_layer, num_classes
-    )
-
-    return model
-
-
-def train(config=None):
-    cfg = config
-
+def train(config: dict = None):
     # fix the seed for reproduce results
-    SEED = cfg["SEED"]
+    SEED = config["SEED"]
     torch.manual_seed(SEED)
     torch.cuda.manual_seed(SEED)
     torch.backends.cudnn.deterministic = True
@@ -83,22 +52,23 @@ def train(config=None):
     random.seed(SEED)
 
     # parse config parameters
-    DATA_ROOT = cfg["DATA_ROOT"]
-    COCO_PATH = cfg["COCO_PATH"]
+    DATA_ROOT = config["DATA_ROOT"]
+    COCO_PATH = config["COCO_PATH"]
+    EXPERIMENT_NAME = config["EXPERIMENT_NAME"]
 
-    EXPERIMENT_NAME = cfg["EXPERIMENT_NAME"]
-    TRAINABLE_BACKBONE_LAYERS = cfg["TRAINABLE_BACKBONE_LAYERS"]
-    LOG_FREQ = cfg["LOG_FREQ"]
-    OPTIMIZER = cfg["OPTIMIZER"]
-    LEARNING_RATE = cfg["LEARNING_RATE"]
-    WEIGHT_DECAY = cfg["WEIGHT_DECAY"]
+    TRAINABLE_BACKBONE_LAYERS = config["TRAINABLE_BACKBONE_LAYERS"]
+    OPTIMIZER = config["OPTIMIZER"]
+    LEARNING_RATE = config["LEARNING_RATE"]
+    WEIGHT_DECAY = config["WEIGHT_DECAY"]
+    ANCHOR_SIZES = config["ANCHOR_SIZES"]
+    ANCHOR_ASPECT_RATIOS = config["ANCHOR_ASPECT_RATIOS"]
 
-    TRAIN_SPLIT_RATE = cfg["TRAIN_SPLIT_RATE"]
-    BATCH_SIZE = cfg["BATCH_SIZE"]
-    NUM_EPOCH = cfg["NUM_EPOCH"]
-
-    DEVICE = cfg["DEVICE"]
-    NUM_WORKERS = cfg["NUM_WORKERS"]
+    LOG_FREQ = config["LOG_FREQ"]
+    TRAIN_SPLIT_RATE = config["TRAIN_SPLIT_RATE"]
+    BATCH_SIZE = config["BATCH_SIZE"]
+    NUM_EPOCH = config["NUM_EPOCH"]
+    DEVICE = config["DEVICE"]
+    NUM_WORKERS = config["NUM_WORKERS"]
 
     # init directories
     directories = Directories(experiment_name=EXPERIMENT_NAME)
@@ -106,7 +76,7 @@ def train(config=None):
     # init tensorboard summary writer
     writer = SummaryWriter(directories.tensorboard_dir)
 
-    # train on the GPU or on the CPU, if a GPU is not available
+    # set pytorch device
     device = torch.device(DEVICE)
     if "cuda" in DEVICE and not torch.cuda.is_available():
         print("CUDA not available, switching to CPU")
@@ -118,11 +88,11 @@ def train(config=None):
 
     # our dataset has two classes only - background and id card
     num_classes = dataset.num_classes + 1
-    cfg["NUM_CLASSES"] = num_classes
+    config["NUM_CLASSES"] = num_classes
 
-    # add category mappings to cfg, will be used at prediction
+    # add category mappings to config, will be used at prediction
     category_mapping = get_category_mapping_froom_coco_file(COCO_PATH)
-    cfg["CATEGORY_MAPPING"] = category_mapping
+    config["CATEGORY_MAPPING"] = category_mapping
 
     # split the dataset in train and val set
     indices = torch.randperm(len(dataset)).tolist()
@@ -151,7 +121,12 @@ def train(config=None):
     )
 
     # get the model using our helper function
-    model = get_model_instance_segmentation(num_classes, TRAINABLE_BACKBONE_LAYERS)
+    model = get_torchvision_maskrcnn(
+        num_classes=num_classes,
+        trainable_backbone_layers=TRAINABLE_BACKBONE_LAYERS,
+        anchor_sizes=ANCHOR_SIZES,
+        anchor_aspect_ratios=ANCHOR_ASPECT_RATIOS,
+    )
 
     # move model to the right device
     model.to(device)
@@ -176,7 +151,7 @@ def train(config=None):
     # and a learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
-    # let's train it for NUM_EPOCH epochs
+    # train it for NUM_EPOCH epochs
     for epoch in range(NUM_EPOCH):
         best_bbox_05095_ap = -1
         # train for one epoch, printing every PRINT_FREQ iterations
@@ -201,12 +176,12 @@ def train(config=None):
         # update best model if it has the best bbox 0.50:0.95 AP
         bbox_05095_ap = coco_evaluator.coco_eval["bbox"].stats[0]
         if bbox_05095_ap > best_bbox_05095_ap:
-            model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
+            model_dict = {"state_dict": model.state_dict(), "config": config}
             torch.save(model_dict, directories.best_weight_path)
             best_bbox_05095_ap = bbox_05095_ap
 
     # save final model
-    model_dict = {"state_dict": model.state_dict(), "cfg": cfg}
+    model_dict = {"state_dict": model.state_dict(), "config": config}
     torch.save(model_dict, directories.last_weight_path)
 
 
@@ -221,13 +196,7 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
 
     # read config
-    current_file_path = os.path.dirname(os.path.realpath(__file__))
-    default_config_path = os.path.join(
-        current_file_path, "configs", "default_config.yml"
-    )
-    config = read_yaml(default_config_path)  # read base config
-    New_config = read_yaml(args["config_path"])  # read new config
-    config.update(New_config)  # overwrite base config
+    config = Configuration(args["config_path"]).as_dict()
 
     # perform instance segmentation
     train(config)

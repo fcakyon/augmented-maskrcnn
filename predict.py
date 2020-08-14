@@ -73,16 +73,16 @@ def instance_segmentation_api(image_path: str, weight_path: str):
     # load model dict
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model_dict = torch.load(weight_path, map_location=DEVICE)
-    # load cfg from model dict
-    cfg = model_dict["cfg"]
+    # load config from model dict
+    config = model_dict["config"]
     # load model
-    model = get_model_instance_segmentation(num_classes=cfg["NUM_CLASSES"])
+    model = get_model_instance_segmentation(num_classes=config["NUM_CLASSES"])
     # load weights
     model.load_state_dict(model_dict["state_dict"])
 
     # get prediction
     masks, boxes, pred_cls = get_prediction(
-        image, model, category_mapping=cfg["CATEGORY_MAPPING"], threshold=0.75
+        image, model, category_mapping=config["CATEGORY_MAPPING"], threshold=0.75
     )
 
     # visualize result

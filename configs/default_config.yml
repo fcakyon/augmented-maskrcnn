@@ -6,16 +6,20 @@ DATA_ROOT: "dir_to_images"
 COCO_PATH: "path_to_coco_json_file"
 # Training model checkpoints and losses will be saved in the folder experiments/EXPERIMENT_NAME/
 EXPERIMENT_NAME: "exp1"
-# Number of trainable (not frozen) resnet layers starting from final block (btw 0-5)
-TRAINABLE_BACKBONE_LAYERS: 3
 # Path to the model to be used during predict
 MODEL_PATH: "experiments/exp1/maskrcnn-best.pt"
+
+# Number of trainable (not frozen) resnet layers starting from final block (btw 0-5)
+TRAINABLE_BACKBONE_LAYERS: 3
 # Optimizer ("adam" or "sgd")
 OPTIMIZER: "sgd"
 # Optimizer learning rate
 LEARNING_RATE: 0.0001
 # Optimizer weight decay
 WEIGHT_DECAY: 0.0005
+# Will be used while generating anchors for a set of feature maps and image sizes
+ANCHOR_SIZES: [32, 64, 128, 256, 512]
+ANCHOR_ASPECT_RATIOS: [0.5, 1.0, 2.0]
 # Number of iterations to print/log
 LOG_FREQ: 40
 # Train split rate of the dataset

@@ -78,7 +78,9 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, log_freq, writ
 
     iter_num = 0
     num_images = len(data_loader.dataset)
-    for images, targets in metric_logger.log_every(data_loader, log_freq, header):
+    for images, targets in metric_logger.iterate_over_data_and_log_every(
+        data_loader, log_freq, header
+    ):
 
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -160,7 +162,7 @@ def _calculate_val_loss(data_loader, model, device, iter_num, writer):
     # init loss lists instance
     loss_lists = LossLists()
 
-    for images, targets in metric_logger.log_every(
+    for images, targets in metric_logger.iterate_over_data_and_log_every(
         data_loader, print_freq=100, header="Val Loss:"
     ):
 
@@ -193,7 +195,7 @@ def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
 
-    for images, targets in metric_logger.log_every(
+    for images, targets in metric_logger.iterate_over_data_and_log_every(
         data_loader, 100, header="Val COCO:"
     ):
         images = list(img.to(device) for img in images)
