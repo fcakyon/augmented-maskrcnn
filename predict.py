@@ -2,16 +2,9 @@ import cv2
 import torch
 import argparse
 import numpy as np
-from albumentations import Compose, Normalize
 from utils import visualize_prediction, crop_inference_bbox
 from train import get_model_instance_segmentation
-
-
-def get_transform() -> Compose:
-    transforms = Compose(
-        [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]
-    )
-    return transforms
+from transform import get_transforms
 
 
 def to_float_tensor(img: np.array) -> torch.tensor:
@@ -27,7 +20,7 @@ def get_prediction(
     verbose: int = 1,
 ) -> (list, list, list):
     # apply transform
-    transforms = get_transform()
+    transforms = get_transforms()
     augmented = transforms(image=image)
     image = augmented["image"]
     # convert to tensor
