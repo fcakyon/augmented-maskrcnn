@@ -111,11 +111,11 @@ class Tests(unittest.TestCase):
         self.assertEqual(validation, True)
 
     def test_COCODataset(self):
-        from train import get_transform
+        from transform import get_transforms
         from dataset import COCODataset
 
         # form basic albumentation transform
-        transforms = get_transform(train=False)
+        transforms = get_transforms(train=False)
 
         # init COCODataset
         DATA_ROOT = "tests/data/"
