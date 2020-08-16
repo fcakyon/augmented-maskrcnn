@@ -41,3 +41,6 @@ def get_torchvision_maskrcnn(
     )
 
     return model
+
+
+# TODO: add custom pretrained model support with configurable trainable layers capability
