@@ -12,10 +12,8 @@ def get_torchvision_maskrcnn(
 ):
     # prepare anchor params
     anchor_sizes = tuple([tuple((anchor_size,)) for anchor_size in anchor_sizes])
-    aspect_ratios = tuple(
-        [tuple((aspect_ratio,)) for aspect_ratio in anchor_aspect_ratios]
-    )
-    aspect_ratios = aspect_ratios * len(anchor_sizes)
+    aspect_ratios = tuple(anchor_aspect_ratios)
+    aspect_ratios = (aspect_ratios,) * len(anchor_sizes)
 
     # load an instance segmentation model pre-trained on COCO
     rpn_anchor_generator = AnchorGenerator(anchor_sizes, aspect_ratios)

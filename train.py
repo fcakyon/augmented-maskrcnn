@@ -171,7 +171,11 @@ def train(config: dict = None):
         iter_num = epoch * num_images
         # evaluate on the val dataset
         loss_lists, coco_evaluator = evaluate(
-            model, data_loader_val, device=device, iter_num=iter_num, writer=writer
+            model=model,
+            data_loader=data_loader_val,
+            device=device,
+            iter_num=iter_num,
+            writer=writer
         )
         # update best model if it has the best bbox 0.50:0.95 AP
         bbox_05095_ap = coco_evaluator.coco_eval["bbox"].stats[0]
@@ -196,7 +200,7 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
 
     # read config
-    config = Configuration(args["config_path"]).as_dict()
+    config = Configuration(args["config_path"]).as_dict
 
     # perform instance segmentation
     train(config)

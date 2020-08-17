@@ -69,12 +69,13 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, log_freq, writ
     metric_logger.add_meter("lr", utils.SmoothedValue(window_size=1, fmt="{value:.6f}"))
     header = "Epoch: [{}]".format(epoch)
 
-    lr_scheduler = None
+    # apply warmup shcedule for min(1k iter, 1 epoch)
+    lr_warmup_schedule = None
     if epoch == 0:
         warmup_factor = 1.0 / 1000
         warmup_iters = min(1000, len(data_loader) - 1)
 
-        lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
+        lr_warmup_schedule = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
     iter_num = 0
     num_images = len(data_loader.dataset)
@@ -135,8 +136,8 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, log_freq, writ
         losses.backward()
         optimizer.step()
 
-        if lr_scheduler is not None:
-            lr_scheduler.step()
+        if lr_warmup_schedule is not None:
+            lr_warmup_schedule.step()
 
         metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
@@ -156,7 +157,7 @@ def _get_iou_types(model):
     return iou_types
 
 
-def _calculate_val_loss(data_loader, model, device, iter_num, writer):
+def _calculate_val_loss(model, data_loader, device, iter_num, writer):
     metric_logger = utils.MetricLogger(delimiter="  ")
 
     # init loss lists instance
@@ -183,7 +184,7 @@ def _calculate_val_loss(data_loader, model, device, iter_num, writer):
     return loss_lists
 
 
-def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
+def _calculate_val_coco_ap(model, data_loader, device, iter_num, writer):
     n_threads = torch.get_num_threads()
     # FIXME remove this and make paste_masks_in_image run on the GPU
     torch.set_num_threads(1)
@@ -191,9 +192,9 @@ def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
 
-    coco = get_coco_api_from_dataset(data_loader.dataset)
     iou_types = _get_iou_types(model)
-    coco_evaluator = CocoEvaluator(coco, iou_types)
+    coco_api = get_coco_api_from_dataset(data_loader.dataset)
+    coco_evaluator = CocoEvaluator(coco_api, iou_types)
 
     for images, targets in metric_logger.iterate_over_data_and_log_every(
         data_loader, 100, header="Val COCO:"
@@ -223,6 +224,8 @@ def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
     coco_evaluator.synchronize_between_processes()
 
     # accumulate predictions from all images
+    #coco_evaluator.coco_eval["segm"].params.catIds=[1]
+    #coco_evaluator.coco_eval["bbox"].params.catIds=[1]
     coco_evaluator.accumulate()
     coco_evaluator.summarize()
     torch.set_num_threads(n_threads)
@@ -286,11 +289,11 @@ def _calculate_val_coco_ap(data_loader, model, device, iter_num, writer):
 @torch.no_grad()
 def evaluate(model, data_loader, device, iter_num, writer):
     # calculate validation loss
-    loss_lists = _calculate_val_loss(data_loader, model, device, iter_num, writer)
+    loss_lists = _calculate_val_loss(model, data_loader, device, iter_num, writer)
 
     # calculate validation coco ap
     coco_evaluator = _calculate_val_coco_ap(
-        data_loader, model, device, iter_num, writer
+        model, data_loader, device, iter_num, writer
     )
 
     return loss_lists, coco_evaluator
