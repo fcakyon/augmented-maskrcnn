@@ -4,9 +4,11 @@
 
 This repo lets you **easily fine tune pretrained MaskRCNN model with 64 fast image augmentation types using your custom data/annotations, then apply prediction** based on the trained model. Training and inference works both on **Windows & Linux**.
 
+- [torchvision](https://github.com/pytorch/vision) is integrated for MaskRCNN training which provides faster convergence with [negative sample support](https://github.com/pytorch/vision/releases/tag/v0.6.0)
 - [albumentations](https://github.com/albumentations-team/albumentations) is integrated for image augmentation which is [much faster](https://github.com/albumentations-team/albumentations#benchmarking-results) than [imgaug](https://github.com/aleju/imgaug) and **supports 64 augmentation types for images, bounding boxes and masks**
+- [tensorboard](https://github.com/tensorflow/tensorboard) is integrated for visualizing the training/validation losses, category based training/validation coco ap results and iteration based learning rate changes
 - Pretrained **resnet50 + feature pyramid** weights on COCO is downloaded upon training
-- **COCO evaluation** is performed after each epoch, during training
+- **COCO evaluation** is performed after each epoch, for training and validation sets for each category
 
 ## Installation
 
