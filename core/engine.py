@@ -14,7 +14,7 @@ def calculate_mean(data_list):
     """
     Calculates mean from given list with float/int elements
     """
-    data_mean = sum(data for data in data_list) / len(data_list)
+    data_mean = sum(data_list) / len(data_list)
     return data_mean
 
 
@@ -59,7 +59,7 @@ class LossLists:
         self.__init__(self)
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, log_freq, writer):
+def train_one_epoch(model, optimizer, data_loader, coco_api, device, epoch, log_freq, writer):
     # init loss lists instance
     loss_lists = LossLists()
 
@@ -69,7 +69,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, log_freq, writ
     metric_logger.add_meter("lr", utils.SmoothedValue(window_size=1, fmt="{value:.6f}"))
     header = "Epoch: [{}]".format(epoch)
 
-    # apply warmup shcedule for min(1k iter, 1 epoch)
+    # apply warmup schedule for min(1k iter, 1 epoch)
     lr_warmup_schedule = None
     if epoch == 0:
         warmup_factor = 1.0 / 1000
@@ -144,6 +144,17 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, log_freq, writ
 
         iter_num += 1
 
+    # calculate train coco ap
+    _ = _calculate_coco_ap(
+        model,
+        data_loader,
+        coco_api,
+        device,
+        iter_num=epoch * num_images + iter_num,
+        writer=writer,
+        mode="train"
+    )
+
 
 def _get_iou_types(model):
     model_without_ddp = model
@@ -157,8 +168,9 @@ def _get_iou_types(model):
     return iou_types
 
 
-def _calculate_val_loss(model, data_loader, device, iter_num, writer):
+def _calculate_val_loss(model, data_loader, coco_api, device, iter_num, writer):
     metric_logger = utils.MetricLogger(delimiter="  ")
+    model.train()
 
     # init loss lists instance
     loss_lists = LossLists()
@@ -184,20 +196,65 @@ def _calculate_val_loss(model, data_loader, device, iter_num, writer):
     return loss_lists
 
 
-def _calculate_val_coco_ap(model, data_loader, device, iter_num, writer):
-    n_threads = torch.get_num_threads()
-    # FIXME remove this and make paste_masks_in_image run on the GPU
+def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
+    """
+    Logs coco ap results.
+    writer: torch.utils.tensorboard.SummaryWriter
+    mode: str
+        "train", "val"
+    category: dict
+        {'id': 1, 'name': 'id_card'}
+    coco_evaluator: core.coco_eval.CocoEvaluator
+    iter_num: int
+    """
+    # get category based coco ap
+    coco_evaluator.coco_eval["segm"].params.catIds = [category["id"]]
+    coco_evaluator.coco_eval["bbox"].params.catIds = [category["id"]]
+    coco_evaluator.accumulate()
+    coco_evaluator.summarize()
+
+    # log stats for tensorboard
+    writer.add_scalar(
+        "coco eval bbox/" + mode + " " + category["name"] + ", " + " AP@0.50:0.95, all area",
+        coco_evaluator.coco_eval["bbox"].stats[0],
+        iter_num,
+    )
+    writer.add_scalar(
+        "coco eval bbox/" + mode + " " + category["name"] + ", " + " AP@0.50, all area",
+        coco_evaluator.coco_eval["bbox"].stats[1],
+        iter_num,
+    )
+
+    writer.add_scalar(
+        "coco eval segm/" + mode + " " + category["name"] + ", " + " AP@0.50:0.95, all area",
+        coco_evaluator.coco_eval["segm"].stats[0],
+        iter_num,
+    )
+    writer.add_scalar(
+        "coco eval segm/" + mode + " " + category["name"] + ", " + " AP@0.50, all area",
+        coco_evaluator.coco_eval["segm"].stats[1],
+        iter_num,
+    )
+
+
+def _calculate_coco_ap(model, data_loader, coco_api, device, iter_num, writer, mode="val"):
+    """
+    Calculates coco ap for given data_loader.
+    iter_num, writer and mode is used for logging/tensorboard.
+    mode can be specified as "train" or "val".
+    """
     torch.set_num_threads(1)
     cpu_device = torch.device("cpu")
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
 
+    categories = data_loader.dataset.dataset.categories
+    #categories = {category["id"] : category["name"] for category in categories}
     iou_types = _get_iou_types(model)
-    coco_api = get_coco_api_from_dataset(data_loader.dataset)
     coco_evaluator = CocoEvaluator(coco_api, iou_types)
 
     for images, targets in metric_logger.iterate_over_data_and_log_every(
-        data_loader, 100, header="Val COCO:"
+        data_loader, 100, header=mode + " COCO ap:"
     ):
         images = list(img.to(device) for img in images)
 
@@ -223,77 +280,20 @@ def _calculate_val_coco_ap(model, data_loader, device, iter_num, writer):
     print("Averaged stats:", metric_logger)
     coco_evaluator.synchronize_between_processes()
 
-    # accumulate predictions from all images
-    #coco_evaluator.coco_eval["segm"].params.catIds=[1]
-    #coco_evaluator.coco_eval["bbox"].params.catIds=[1]
-    coco_evaluator.accumulate()
-    coco_evaluator.summarize()
-    torch.set_num_threads(n_threads)
-
-    # log stats for tensorboard
-    writer.add_scalar(
-        "coco eval bbox/val AP@0.50:0.95, all area",
-        coco_evaluator.coco_eval["bbox"].stats[0],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval bbox/val AP@0.50, all area",
-        coco_evaluator.coco_eval["bbox"].stats[1],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval bbox/val AP@0.50:0.95, small area",
-        coco_evaluator.coco_eval["bbox"].stats[3],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval bbox/val AP@0.50:0.95, medium area",
-        coco_evaluator.coco_eval["bbox"].stats[4],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval bbox/val AP@0.50:0.95, large area",
-        coco_evaluator.coco_eval["bbox"].stats[5],
-        iter_num,
-    )
-
-    writer.add_scalar(
-        "coco eval segm/val AP@0.50:0.95, all area",
-        coco_evaluator.coco_eval["segm"].stats[0],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval segm/val AP@0.50, all area",
-        coco_evaluator.coco_eval["segm"].stats[1],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval segm/val AP@0.50:0.95, small area",
-        coco_evaluator.coco_eval["segm"].stats[3],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval segm/val AP@0.50:0.95, medium area",
-        coco_evaluator.coco_eval["segm"].stats[4],
-        iter_num,
-    )
-    writer.add_scalar(
-        "coco eval segm/val AP@0.50:0.95, large area",
-        coco_evaluator.coco_eval["segm"].stats[5],
-        iter_num,
-    )
+    for category in categories:
+        _log_coco_results(writer, mode, category, coco_evaluator, iter_num)
 
     return coco_evaluator
 
 
 @torch.no_grad()
-def evaluate(model, data_loader, device, iter_num, writer):
+def evaluate(model, data_loader, coco_api, device, iter_num, writer):
     # calculate validation loss
-    loss_lists = _calculate_val_loss(model, data_loader, device, iter_num, writer)
+    loss_lists = _calculate_val_loss(model, data_loader, coco_api, device, iter_num, writer)
 
     # calculate validation coco ap
-    coco_evaluator = _calculate_val_coco_ap(
-        model, data_loader, device, iter_num, writer
+    coco_evaluator = _calculate_coco_ap(
+        model, data_loader, coco_api, device, iter_num, writer, mode="val"
     )
 
     return loss_lists, coco_evaluator

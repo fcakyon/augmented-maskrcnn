@@ -3,6 +3,7 @@ import torchvision
 from torch.utils.tensorboard import SummaryWriter
 
 from core.engine import train_one_epoch, evaluate
+from core.coco_utils import get_coco_api_from_dataset
 import core.utils
 from utils import (
     create_dir,
@@ -56,12 +57,17 @@ def train(config: dict = None):
     COCO_PATH = config["COCO_PATH"]
     EXPERIMENT_NAME = config["EXPERIMENT_NAME"]
 
-    TRAINABLE_BACKBONE_LAYERS = config["TRAINABLE_BACKBONE_LAYERS"]
     OPTIMIZER = config["OPTIMIZER"]
+    OPTIMIZER_WEIGHT_DECAY = config["OPTIMIZER_WEIGHT_DECAY"]
+    SGD_MOMENTUM = config["SGD_MOMENTUM"]
+    ADAM_BETAS = config["ADAM_BETAS"]
     LEARNING_RATE = config["LEARNING_RATE"]
-    WEIGHT_DECAY = config["WEIGHT_DECAY"]
-    ANCHOR_SIZES = config["ANCHOR_SIZES"]
-    ANCHOR_ASPECT_RATIOS = config["ANCHOR_ASPECT_RATIOS"]
+    LEARNING_RATE_STEP_SIZE = config["LEARNING_RATE_STEP_SIZE"]
+    LEARNING_RATE_GAMMA = config["LEARNING_RATE_GAMMA"]
+
+    TRAINABLE_BACKBONE_LAYERS = config["TRAINABLE_BACKBONE_LAYERS"]
+    RPN_ANCHOR_SIZES = config["RPN_ANCHOR_SIZES"]
+    RPN_ANCHOR_ASPECT_RATIOS = config["RPN_ANCHOR_ASPECT_RATIOS"]
 
     LOG_FREQ = config["LOG_FREQ"]
     TRAIN_SPLIT_RATE = config["TRAIN_SPLIT_RATE"]
@@ -86,7 +92,7 @@ def train(config: dict = None):
     dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(train=True))
     dataset_val = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(train=False))
 
-    # our dataset has two classes only - background and id card
+    # +1 for background class
     num_classes = dataset.num_classes + 1
     config["NUM_CLASSES"] = num_classes
 
@@ -104,7 +110,7 @@ def train(config: dict = None):
     dataset_val = torch.utils.data.Subset(dataset_val, val_indices)
 
     # define training and val data loaders
-    data_loader = torch.utils.data.DataLoader(
+    data_loader_train = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
@@ -124,8 +130,8 @@ def train(config: dict = None):
     model = get_torchvision_maskrcnn(
         num_classes=num_classes,
         trainable_backbone_layers=TRAINABLE_BACKBONE_LAYERS,
-        anchor_sizes=ANCHOR_SIZES,
-        anchor_aspect_ratios=ANCHOR_ASPECT_RATIOS,
+        anchor_sizes=RPN_ANCHOR_SIZES,
+        anchor_aspect_ratios=RPN_ANCHOR_ASPECT_RATIOS,
     )
 
     # move model to the right device
@@ -135,21 +141,34 @@ def train(config: dict = None):
     params = [p for p in model.parameters() if p.requires_grad]
     if OPTIMIZER == "sgd":
         optimizer = OPTIMIZER = torch.optim.SGD(
-            params, lr=LEARNING_RATE, momentum=0.9, weight_decay=WEIGHT_DECAY
+            params,
+            lr=LEARNING_RATE,
+            momentum=SGD_MOMENTUM,
+            weight_decay=OPTIMIZER_WEIGHT_DECAY
         )
     elif OPTIMIZER == "adam":
         optimizer = torch.optim.Adam(
             params,
             lr=LEARNING_RATE,
-            betas=(0.9, 0.999),
+            betas=tuple(ADAM_BETAS),
             eps=1e-08,
-            weight_decay=WEIGHT_DECAY,
+            weight_decay=OPTIMIZER_WEIGHT_DECAY,
             amsgrad=False,
         )
     else:
         Exception("Invalid OPTIMIZER, try: 'adam' or 'sgd'")
+
     # and a learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer,
+        step_size=LEARNING_RATE_STEP_SIZE,
+        gamma=LEARNING_RATE_GAMMA
+    )
+
+    # create coco index
+    print("Creating COCO index...")
+    coco_api_train = get_coco_api_from_dataset(data_loader_train.dataset)
+    coco_api_val = get_coco_api_from_dataset(data_loader_val.dataset)
 
     # train it for NUM_EPOCH epochs
     for epoch in range(NUM_EPOCH):
@@ -158,7 +177,8 @@ def train(config: dict = None):
         train_one_epoch(
             model,
             optimizer,
-            data_loader,
+            data_loader_train,
+            coco_api_train,
             device,
             epoch,
             log_freq=LOG_FREQ,
@@ -167,12 +187,13 @@ def train(config: dict = None):
         # update the learning rate
         lr_scheduler.step()
         # get iteration number
-        num_images = len(data_loader.dataset)
+        num_images = len(data_loader_train.dataset)
         iter_num = epoch * num_images
         # evaluate on the val dataset
         loss_lists, coco_evaluator = evaluate(
             model=model,
             data_loader=data_loader_val,
+            coco_api=coco_api_val,
             device=device,
             iter_num=iter_num,
             writer=writer

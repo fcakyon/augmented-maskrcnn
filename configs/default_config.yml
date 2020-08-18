@@ -1,25 +1,34 @@
 # Random seed to reproduce the results
 SEED: 999
-# Path to dataset root
-DATA_ROOT: "dir_to_images"
+# Directory to dataset root
+DATA_ROOT: ""
 # Path to annotation file (should be in coco object detection format)
-COCO_PATH: "path_to_coco_json_file"
+COCO_PATH: ""
 # Training model checkpoints and losses will be saved in the folder experiments/EXPERIMENT_NAME/
 EXPERIMENT_NAME: "exp1"
 # Path to the model to be used during predict
 MODEL_PATH: "experiments/exp1/maskrcnn-best.pt"
 
-# Number of trainable (not frozen) resnet layers starting from final block (btw 0-5)
-TRAINABLE_BACKBONE_LAYERS: 3
 # Optimizer ("adam" or "sgd")
 OPTIMIZER: "sgd"
+# Optimizer weight decay
+OPTIMIZER_WEIGHT_DECAY: 0.0005
+# Momentum if optimizer is chosen as sgd
+SGD_MOMENTUM: 0.9
+# Betas if optimizer is chosen as adam
+ADAM_BETAS: [0.9, 0.999]
 # Optimizer learning rate
 LEARNING_RATE: 0.0001
-# Optimizer weight decay
-WEIGHT_DECAY: 0.0005
+# Optimizer learning rate schedule parameters
+LEARNING_RATE_STEP_SIZE: 3
+LEARNING_RATE_GAMMA: 0.1
+
+# Number of trainable (not frozen) resnet layers starting from final block (btw 0-5)
+TRAINABLE_BACKBONE_LAYERS: 3
 # Will be used while generating anchors for a set of feature maps and image sizes
-ANCHOR_SIZES: [32, 64, 128, 256, 512]
-ANCHOR_ASPECT_RATIOS: [0.5, 1.0, 2.0]
+RPN_ANCHOR_SIZES: [32, 64, 128, 256, 512]
+RPN_ANCHOR_ASPECT_RATIOS: [0.5, 1.0, 2.0]
+
 # Number of iterations to print/log
 LOG_FREQ: 40
 # Train split rate of the dataset
