@@ -17,6 +17,11 @@ from albumentations.augmentations.transforms import (
 
 
 def get_transforms(train: bool) -> Compose:
+    """
+    Composes albumentations transforms.
+    Returns the full list of transforms when train is True.
+    Returns only standartization transform when train is False.
+    """
     transforms = Compose(
         [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])],
         bbox_params=BboxParams(
@@ -28,6 +33,7 @@ def get_transforms(train: bool) -> Compose:
     )
 
     # compose train transforms
+    # TODO: make transformation parameters configurable from yml
     if train:
         transforms = Compose(
             [
