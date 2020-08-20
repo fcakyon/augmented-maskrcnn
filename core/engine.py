@@ -208,8 +208,9 @@ def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
     iter_num: int
     """
     # get category based coco ap
-    coco_evaluator.coco_eval["segm"].params.catIds = [category["id"]]
-    coco_evaluator.coco_eval["bbox"].params.catIds = [category["id"]]
+    catId = category["id"]
+    coco_evaluator.coco_eval["segm"].params.catIds = [catId]*catId
+    coco_evaluator.coco_eval["bbox"].params.catIds = [catId]*catId
     coco_evaluator.accumulate()
     coco_evaluator.summarize()
 
