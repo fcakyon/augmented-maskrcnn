@@ -89,8 +89,8 @@ def train(config: dict = None):
         device = torch.device("cpu")
 
     # use our dataset and defined transformations
-    dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(train=True))
-    dataset_val = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(train=False))
+    dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(mode="train"))
+    dataset_val = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(mode="val"))
 
     # +1 for background class
     num_classes = dataset.num_classes + 1

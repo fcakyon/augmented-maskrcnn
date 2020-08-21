@@ -3,7 +3,7 @@ import torch
 import argparse
 import numpy as np
 from utils import visualize_prediction, crop_inference_bbox
-from train import get_model_instance_segmentation
+from model import get_torchvision_maskrcnn
 from transform import get_transforms
 
 
@@ -20,7 +20,7 @@ def get_prediction(
     verbose: int = 1,
 ) -> (list, list, list):
     # apply transform
-    transforms = get_transforms()
+    transforms = get_transforms(mode="predict")
     augmented = transforms(image=image)
     image = augmented["image"]
     # convert to tensor
@@ -76,7 +76,12 @@ def instance_segmentation_api(image_path: str, weight_path: str):
     # load config from model dict
     config = model_dict["config"]
     # load model
-    model = get_model_instance_segmentation(num_classes=config["NUM_CLASSES"])
+    model = get_torchvision_maskrcnn(
+        num_classes=config["NUM_CLASSES"],
+        trainable_backbone_layers=config["TRAINABLE_BACKBONE_LAYERS"],
+        anchor_sizes=config["RPN_ANCHOR_SIZES"],
+        anchor_aspect_ratios=config["RPN_ANCHOR_ASPECT_RATIOS"],
+    )
     # load weights
     model.load_state_dict(model_dict["state_dict"])
 

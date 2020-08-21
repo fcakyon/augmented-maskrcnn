@@ -16,33 +16,39 @@ from albumentations.augmentations.transforms import (
 )
 
 
-def get_transforms(train: bool) -> Compose:
+def get_transforms(mode: str = "predict") -> Compose:
     """
     Composes albumentations transforms.
-    Returns the full list of transforms when train is True.
-    Returns only standartization transform when train is False.
+    Returns the full list of transforms when mode is "train".
+    mode should be one of "train", "val" or "predict".
     """
-    transforms = Compose(
-        [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])],
-        bbox_params=BboxParams(
-            format="pascal_voc",
-            min_area=0.0,
-            min_visibility=0.0,
-            label_fields=["category_id"],
-        ),
-    )
-
+    # compose prediction transforms
+    if mode == "predict":
+        transforms = Compose(
+            [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])],
+        )
+    # compose validation transforms
+    elif mode == "val":
+        transforms = Compose(
+            [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])],
+            bbox_params=BboxParams(
+                format="pascal_voc",
+                min_area=0.0,
+                min_visibility=0.0,
+                label_fields=["category_id"],
+            ),
+        )
     # compose train transforms
     # TODO: make transformation parameters configurable from yml
-    if train:
+    elif mode == "train":
         transforms = Compose(
             [
                 LongestMaxSize(max_size=768, p=1),
                 PadIfNeeded(min_height=768, min_width=768, border_mode=0, p=1),
-                RandomSizedBBoxSafeCrop(height=768, width=768, p=0.5),
+                RandomSizedBBoxSafeCrop(height=768, width=768, p=0),
                 HorizontalFlip(p=0.5),
                 RandomRotate90(p=0),
-                RandomBrightnessContrast(p=0.3),
+                RandomBrightnessContrast(p=0),
                 RandomGamma(p=0),
                 HueSaturationValue(p=0),
                 MotionBlur(p=0),

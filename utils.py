@@ -5,7 +5,6 @@ import yaml
 import random
 import jsonschema
 import numpy as np
-from collections import namedtuple
 
 image_schema = {
     "type": "object",
@@ -200,7 +199,7 @@ def get_category_mapping_froom_coco_file(coco_file_path: str) -> dict:
 
     coco_categories = coco_dict["categories"]
     category_mapping = {
-        coco_category["id"]: coco_category["name"] for coco_category in coco_categories
+        str(coco_category["id"]): coco_category["name"] for coco_category in coco_categories
     }
     return category_mapping
 
