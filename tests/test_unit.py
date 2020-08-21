@@ -115,7 +115,7 @@ class Tests(unittest.TestCase):
         from dataset import COCODataset
 
         # form basic albumentation transform
-        transforms = get_transforms(train=False)
+        transforms = get_transforms(mode="val")
 
         # init COCODataset
         DATA_ROOT = "tests/data/"
