@@ -11,6 +11,7 @@ from utils import (
     Configuration,
 )
 from transform import get_transforms
+from optimizer import Optimizer
 from dataset import COCODataset
 from model import get_torchvision_maskrcnn
 
@@ -57,10 +58,14 @@ def train(config: dict = None):
     COCO_PATH = config["COCO_PATH"]
     EXPERIMENT_NAME = config["EXPERIMENT_NAME"]
 
-    OPTIMIZER = config["OPTIMIZER"]
+    OPTIMIZER_NAME = config["OPTIMIZER_NAME"]
     OPTIMIZER_WEIGHT_DECAY = config["OPTIMIZER_WEIGHT_DECAY"]
-    SGD_MOMENTUM = config["SGD_MOMENTUM"]
-    ADAM_BETAS = config["ADAM_BETAS"]
+    OPTIMIZER_MOMENTUM = config["OPTIMIZER_MOMENTUM"]
+    OPTIMIZER_BETAS = config["OPTIMIZER_BETAS"]
+    OPTIMIZER_EPS = config["OPTIMIZER_EPS"]
+    OPTIMIZER_AMSGRAD = config["OPTIMIZER_AMSGRAD"]
+    OPTIMIZER_ADABOUND_GAMMA = config["OPTIMIZER_ADABOUND_GAMMA"]
+    OPTIMIZER_ADABOUND_FINAL_LR = config["OPTIMIZER_ADABOUND_FINAL_LR"]
     LEARNING_RATE = config["LEARNING_RATE"]
     LEARNING_RATE_STEP_SIZE = config["LEARNING_RATE_STEP_SIZE"]
     LEARNING_RATE_GAMMA = config["LEARNING_RATE_GAMMA"]
@@ -139,30 +144,21 @@ def train(config: dict = None):
 
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    if OPTIMIZER == "sgd":
-        optimizer = OPTIMIZER = torch.optim.SGD(
-            params,
-            lr=LEARNING_RATE,
-            momentum=SGD_MOMENTUM,
-            weight_decay=OPTIMIZER_WEIGHT_DECAY
-        )
-    elif OPTIMIZER == "adam":
-        optimizer = torch.optim.Adam(
-            params,
-            lr=LEARNING_RATE,
-            betas=tuple(ADAM_BETAS),
-            eps=1e-08,
-            weight_decay=OPTIMIZER_WEIGHT_DECAY,
-            amsgrad=False,
-        )
-    else:
-        Exception("Invalid OPTIMIZER, try: 'adam' or 'sgd'")
+    optimizer_instance = Optimizer(
+        learning_rate=LEARNING_RATE,
+        momentum=OPTIMIZER_MOMENTUM,
+        weight_decay=OPTIMIZER_WEIGHT_DECAY,
+        betas=OPTIMIZER_BETAS,
+        eps=OPTIMIZER_EPS,
+        amsgrad=OPTIMIZER_AMSGRAD,
+        adabound_gamma=OPTIMIZER_ADABOUND_GAMMA,
+        adabound_final_lr=OPTIMIZER_ADABOUND_FINAL_LR,
+    )
+    optimizer = optimizer_instance.get(params, OPTIMIZER_NAME)
 
     # and a learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer,
-        step_size=LEARNING_RATE_STEP_SIZE,
-        gamma=LEARNING_RATE_GAMMA
+        optimizer, step_size=LEARNING_RATE_STEP_SIZE, gamma=LEARNING_RATE_GAMMA
     )
 
     # create coco index
@@ -196,7 +192,7 @@ def train(config: dict = None):
             coco_api=coco_api_val,
             device=device,
             iter_num=iter_num,
-            writer=writer
+            writer=writer,
         )
         # update best model if it has the best bbox 0.50:0.95 AP
         bbox_05095_ap = coco_evaluator.coco_eval["bbox"].stats[0]

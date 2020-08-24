@@ -19,3 +19,4 @@ dependencies:
     - jsonschema>=2.6.0
     - albumentations==0.4.6
     - tensorboard==2.0.0
+    - torch-optimizer==0.0.1a15

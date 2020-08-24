@@ -7,3 +7,4 @@ torchvision>=0.7.0
 albumentations==0.4.6
 imgaug==0.4.0
 tensorboard==2.0.0
+torch-optimizer==0.0.1a15

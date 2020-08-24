@@ -6,6 +6,7 @@ This repo lets you **easily fine tune pretrained MaskRCNN model with 64 fast ima
 
 - [torchvision](https://github.com/pytorch/vision) is integrated for MaskRCNN training which provides faster convergence with [negative sample support](https://github.com/pytorch/vision/releases/tag/v0.6.0)
 - [albumentations](https://github.com/albumentations-team/albumentations) is integrated for image augmentation which is [much faster](https://github.com/albumentations-team/albumentations#benchmarking-results) than [imgaug](https://github.com/aleju/imgaug) and **supports 64 augmentation types for images, bounding boxes and masks**
+- [torch-optimizer](https://github.com/jettify/pytorch-optimizer) is integrated to support [AdaBound](https://arxiv.org/abs/1902.09843), [Lamb](https://arxiv.org/abs/1904.00962), [RAdam](https://arxiv.org/abs/1908.03265) optimizers.
 - [tensorboard](https://github.com/tensorflow/tensorboard) is integrated for visualizing the training/validation losses, category based training/validation coco ap results and iteration based learning rate changes
 - Pretrained **resnet50 + feature pyramid** weights on COCO is downloaded upon training
 - **COCO evaluation** is performed after each epoch, for training and validation sets for each category
