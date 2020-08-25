@@ -59,7 +59,9 @@ class LossLists:
         self.__init__(self)
 
 
-def train_one_epoch(model, optimizer, data_loader, coco_api, device, epoch, log_freq, writer):
+def train_one_epoch(
+    model, optimizer, data_loader, coco_api, device, epoch, log_freq, writer
+):
     # init loss lists instance
     loss_lists = LossLists()
 
@@ -75,7 +77,9 @@ def train_one_epoch(model, optimizer, data_loader, coco_api, device, epoch, log_
         warmup_factor = 1.0 / 1000
         warmup_iters = min(1000, len(data_loader) - 1)
 
-        lr_warmup_schedule = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
+        lr_warmup_schedule = utils.warmup_lr_scheduler(
+            optimizer, warmup_iters, warmup_factor
+        )
 
     iter_num = 0
     num_images = len(data_loader.dataset)
@@ -152,7 +156,7 @@ def train_one_epoch(model, optimizer, data_loader, coco_api, device, epoch, log_
         device,
         iter_num=epoch * num_images + iter_num,
         writer=writer,
-        mode="train"
+        mode="train",
     )
 
 
@@ -209,14 +213,19 @@ def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
     """
     # get category based coco ap
     catId = category["id"]
-    coco_evaluator.coco_eval["segm"].params.catIds = [catId]*catId
-    coco_evaluator.coco_eval["bbox"].params.catIds = [catId]*catId
+    coco_evaluator.coco_eval["segm"].params.catIds = [catId] * catId
+    coco_evaluator.coco_eval["bbox"].params.catIds = [catId] * catId
     coco_evaluator.accumulate()
     coco_evaluator.summarize()
 
     # log stats for tensorboard
     writer.add_scalar(
-        "coco eval bbox/" + mode + " " + category["name"] + ", " + " AP@0.50:0.95, all area",
+        "coco eval bbox/"
+        + mode
+        + " "
+        + category["name"]
+        + ", "
+        + " AP@0.50:0.95, all area",
         coco_evaluator.coco_eval["bbox"].stats[0],
         iter_num,
     )
@@ -227,7 +236,12 @@ def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
     )
 
     writer.add_scalar(
-        "coco eval segm/" + mode + " " + category["name"] + ", " + " AP@0.50:0.95, all area",
+        "coco eval segm/"
+        + mode
+        + " "
+        + category["name"]
+        + ", "
+        + " AP@0.50:0.95, all area",
         coco_evaluator.coco_eval["segm"].stats[0],
         iter_num,
     )
@@ -238,7 +252,9 @@ def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
     )
 
 
-def _calculate_coco_ap(model, data_loader, coco_api, device, iter_num, writer, mode="val"):
+def _calculate_coco_ap(
+    model, data_loader, coco_api, device, iter_num, writer, mode="val"
+):
     """
     Calculates coco ap for given data_loader.
     iter_num, writer and mode is used for logging/tensorboard.
@@ -250,7 +266,7 @@ def _calculate_coco_ap(model, data_loader, coco_api, device, iter_num, writer, m
     metric_logger = utils.MetricLogger(delimiter="  ")
 
     categories = data_loader.dataset.dataset.categories
-    #categories = {category["id"] : category["name"] for category in categories}
+    # categories = {category["id"] : category["name"] for category in categories}
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco_api, iou_types)
 
@@ -290,7 +306,9 @@ def _calculate_coco_ap(model, data_loader, coco_api, device, iter_num, writer, m
 @torch.no_grad()
 def evaluate(model, data_loader, coco_api, device, iter_num, writer):
     # calculate validation loss
-    loss_lists = _calculate_val_loss(model, data_loader, coco_api, device, iter_num, writer)
+    loss_lists = _calculate_val_loss(
+        model, data_loader, coco_api, device, iter_num, writer
+    )
 
     # calculate validation coco ap
     coco_evaluator = _calculate_coco_ap(
