@@ -23,57 +23,58 @@ class Optimizer:
         self.adabound_gamma = adabound_gamma
         self.adabound_final_lr = adabound_final_lr
 
+    def get(self, params, optimizer_name):
+        """
+        Creates torch optimizer specified by 'optimizer_name' for given 'params'.
 
-def get(self, params, optimizer_name):
-    """
-    Creates torch optimizer specified by 'optimizer_name' for given 'params'.
-    
-    """
-    if optimizer_name == "sgd":
-        optimizer = SGD(
-            params,
-            lr=self.learning_rate,
-            momentum=self.momentum,
-            weight_decay=self.weight_decay,
-        )
-    elif optimizer_name == "adam":
-        optimizer = Adam(
-            params,
-            lr=self.learning_rate,
-            betas=tuple(self.betas),
-            eps=self.eps,
-            weight_decay=self.weight_decay,
-            amsgrad=self.amsgrad,
-        )
-    elif optimizer_name == "adabound":
-        optimizer = AdaBound(
-            params,
-            lr=self.learning_rate,
-            betas=tuple(self.betas),
-            final_lr=self.adabound_final_lr,
-            gamma=self.adabound_gamma,
-            eps=self.eps,
-            weight_decay=self.weight_decay,
-            amsbound=self.amsgrad,
-        )
-    elif optimizer_name == "lamb":
-        optimizer = Lamb(
-            params,
-            lr=self.learning_rate,
-            betas=tuple(self.betas),
-            eps=self.eps,
-            weight_decay=self.weight_decay,
-        )
-    elif optimizer_name == "radam":
-        optimizer = RAdam(
-            params,
-            lr=self.learning_rate,
-            betas=tuple(self.betas),
-            eps=self.eps,
-            weight_decay=self.weight_decay,
-        )
-    else:
-        Exception(
-            "Invalid OPTIMIZER, try: 'adam', 'sgd', 'adabound', 'lamb' or 'radam'"
-        )
-    return optimizer
+        params: list of torch.nn.parameter.Parameter
+        optimizer_name: str
+        """
+        if optimizer_name == "sgd":
+            optimizer = SGD(
+                params,
+                lr=self.learning_rate,
+                momentum=self.momentum,
+                weight_decay=self.weight_decay,
+            )
+        elif optimizer_name == "adam":
+            optimizer = Adam(
+                params,
+                lr=self.learning_rate,
+                betas=tuple(self.betas),
+                eps=self.eps,
+                weight_decay=self.weight_decay,
+                amsgrad=self.amsgrad,
+            )
+        elif optimizer_name == "adabound":
+            optimizer = AdaBound(
+                params,
+                lr=self.learning_rate,
+                betas=tuple(self.betas),
+                final_lr=self.adabound_final_lr,
+                gamma=self.adabound_gamma,
+                eps=self.eps,
+                weight_decay=self.weight_decay,
+                amsbound=self.amsgrad,
+            )
+        elif optimizer_name == "lamb":
+            optimizer = Lamb(
+                params,
+                lr=self.learning_rate,
+                betas=tuple(self.betas),
+                eps=self.eps,
+                weight_decay=self.weight_decay,
+            )
+        elif optimizer_name == "radam":
+            optimizer = RAdam(
+                params,
+                lr=self.learning_rate,
+                betas=tuple(self.betas),
+                eps=self.eps,
+                weight_decay=self.weight_decay,
+            )
+        else:
+            Exception(
+                "Invalid OPTIMIZER, try: 'adam', 'sgd', 'adabound', 'lamb' or 'radam'"
+            )
+        return optimizer
