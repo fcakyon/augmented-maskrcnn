@@ -81,6 +81,7 @@ def instance_segmentation_api(image_path: str, weight_path: str):
         trainable_backbone_layers=config["TRAINABLE_BACKBONE_LAYERS"],
         anchor_sizes=config["RPN_ANCHOR_SIZES"],
         anchor_aspect_ratios=config["RPN_ANCHOR_ASPECT_RATIOS"],
+        pretrained=False,
     )
     # load weights
     model.load_state_dict(model_dict["state_dict"])
