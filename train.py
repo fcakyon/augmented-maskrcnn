@@ -11,7 +11,7 @@ from utils import (
     Configuration,
 )
 from transform import get_transforms
-from optimizer import Optimizer
+from optimizer import OptimizerFactory
 from dataset import COCODataset
 from model import get_torchvision_maskrcnn
 
@@ -137,6 +137,7 @@ def train(config: dict = None):
         trainable_backbone_layers=TRAINABLE_BACKBONE_LAYERS,
         anchor_sizes=RPN_ANCHOR_SIZES,
         anchor_aspect_ratios=RPN_ANCHOR_ASPECT_RATIOS,
+        pretrained=True,
     )
 
     # move model to the right device
@@ -144,7 +145,7 @@ def train(config: dict = None):
 
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer_instance = Optimizer(
+    optimizer_factory = OptimizerFactory(
         learning_rate=LEARNING_RATE,
         momentum=OPTIMIZER_MOMENTUM,
         weight_decay=OPTIMIZER_WEIGHT_DECAY,
@@ -154,7 +155,7 @@ def train(config: dict = None):
         adabound_gamma=OPTIMIZER_ADABOUND_GAMMA,
         adabound_final_lr=OPTIMIZER_ADABOUND_FINAL_LR,
     )
-    optimizer = optimizer_instance.get(params, OPTIMIZER_NAME)
+    optimizer = optimizer_factory.get(params, OPTIMIZER_NAME)
 
     # and a learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(

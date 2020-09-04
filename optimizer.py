@@ -2,7 +2,7 @@ from torch_optimizer import AdaBound, Lamb, RAdam
 from torch.optim import SGD, Adam
 
 
-class Optimizer:
+class OptimizerFactory:
     def __init__(
         self,
         learning_rate,
