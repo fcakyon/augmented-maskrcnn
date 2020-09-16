@@ -5,6 +5,7 @@ import yaml
 import random
 import jsonschema
 import numpy as np
+from shutil import copyfile
 
 image_schema = {
     "type": "object",
@@ -213,6 +214,14 @@ def read_yaml(yaml_path):
         yaml_data = yaml.load(f, Loader=yaml.FullLoader)
 
     return yaml_data
+
+
+def save_yaml(dict_file, yaml_path):
+    """
+    Saves a dict as yaml file.
+    """
+    with open(yaml_path, "w") as file:
+        documents = yaml.dump(dict_file, file)
 
 
 class Configuration:

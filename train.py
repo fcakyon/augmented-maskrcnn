@@ -9,6 +9,7 @@ from utils import (
     create_dir,
     get_category_mapping_froom_coco_file,
     Configuration,
+    save_yaml,
 )
 from transform import get_transforms
 from optimizer import OptimizerFactory
@@ -35,6 +36,7 @@ class Directories:
             experiments_dir, experiment_name, "maskrcnn-best.pt"
         )
         self.tensorboard_dir = os.path.join(experiments_dir, experiment_name, "summary")
+        self.experiment_dir = os.path.join(experiments_dir, experiment_name)
 
         last_weight_dir = os.path.dirname(self.last_weight_path)
         best_weight_dir = os.path.dirname(self.best_weight_path)
@@ -83,6 +85,10 @@ def train(config: dict = None):
 
     # init directories
     directories = Directories(experiment_name=EXPERIMENT_NAME)
+
+    # copy config file to experiment dir
+    yaml_path = os.path.join(directories.experiment_dir, "config.yml")
+    save_yaml(config, yaml_path)
 
     # init tensorboard summary writer
     writer = SummaryWriter(directories.tensorboard_dir)
