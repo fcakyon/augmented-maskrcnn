@@ -7,7 +7,7 @@ from core.coco_utils import get_coco_api_from_dataset
 import core.utils
 from utils import (
     create_dir,
-    get_category_mapping_froom_coco_file,
+    get_category_mapping_from_coco_file,
     Configuration,
     save_yaml,
 )
@@ -58,6 +58,8 @@ def train(config: dict = None):
     # parse config parameters
     DATA_ROOT = config["DATA_ROOT"]
     COCO_PATH = config["COCO_PATH"]
+    DATA_ROOT_VAL = config["DATA_ROOT_VAL"]
+    COCO_PATH_VAL = config["COCO_PATH_VAL"]
     EXPERIMENT_NAME = config["EXPERIMENT_NAME"]
 
     OPTIMIZER_NAME = config["OPTIMIZER_NAME"]
@@ -101,24 +103,30 @@ def train(config: dict = None):
 
     # use our dataset and defined transformations
     dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(mode="train"))
-    dataset_val = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(mode="val"))
+    if COCO_PATH_VAL:
+        dataset_val = COCODataset(
+            DATA_ROOT_VAL, COCO_PATH_VAL, get_transforms(mode="val")
+        )
+    else:
+        dataset_val = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(mode="val"))
 
     # +1 for background class
     num_classes = dataset.num_classes + 1
     config["NUM_CLASSES"] = num_classes
 
     # add category mappings to config, will be used at prediction
-    category_mapping = get_category_mapping_froom_coco_file(COCO_PATH)
+    category_mapping = get_category_mapping_from_coco_file(COCO_PATH)
     config["CATEGORY_MAPPING"] = category_mapping
 
-    # split the dataset in train and val set
-    indices = torch.randperm(len(dataset)).tolist()
-    num_train = int(len(indices) * TRAIN_SPLIT_RATE)
-    train_indices = indices[:num_train]
-    val_indices = indices[num_train:]
+    # split the dataset in train and val set if val path is not defined
+    if not COCO_PATH_VAL:
+        indices = torch.randperm(len(dataset)).tolist()
+        num_train = int(len(indices) * TRAIN_SPLIT_RATE)
+        train_indices = indices[:num_train]
+        val_indices = indices[num_train:]
 
-    dataset = torch.utils.data.Subset(dataset, train_indices)
-    dataset_val = torch.utils.data.Subset(dataset_val, val_indices)
+        dataset = torch.utils.data.Subset(dataset, train_indices)
+        dataset_val = torch.utils.data.Subset(dataset_val, val_indices)
 
     # define training and val data loaders
     data_loader_train = torch.utils.data.DataLoader(

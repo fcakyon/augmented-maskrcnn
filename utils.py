@@ -5,6 +5,7 @@ import yaml
 import random
 import jsonschema
 import numpy as np
+from tqdm import tqdm
 from shutil import copyfile
 
 image_schema = {
@@ -187,7 +188,7 @@ def crop_inference_bbox(image, boxes, file_name="cropped_inference_result"):
             cv2.imwrite(save_path, cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
 
 
-def get_category_mapping_froom_coco_file(coco_file_path: str) -> dict:
+def get_category_mapping_from_coco_file(coco_file_path: str) -> dict:
     """
     Creates category id>name mapping from a coco annotation file.
     """
@@ -204,6 +205,97 @@ def get_category_mapping_froom_coco_file(coco_file_path: str) -> dict:
         for coco_category in coco_categories
     }
     return category_mapping
+
+
+def split_train_val_for_coco(
+    coco_file_path: str, target_dir: str, train_split_rate: float
+):
+    # check if coco file is valid and read it
+    (coco_dict, response) = read_and_validate_coco_annotation(coco_file_path)
+
+    # raise error if coco file is not valid
+    if not (response):
+        raise TypeError
+
+    # divide coco dict into train val coco dicts
+    num_images = len(coco_dict["images"])
+    random_indices = np.random.permutation(num_images).tolist()
+    num_train = int(num_images * train_split_rate)
+    # divide images
+    train_indices = random_indices[:num_train]
+    val_indices = random_indices[num_train:]
+    train_images = np.array(coco_dict["images"])[
+        (np.array(train_indices) - 1).tolist()
+    ].tolist()
+    val_images = np.array(coco_dict["images"])[
+        (np.array(val_indices) - 1).tolist()
+    ].tolist()
+    # divide annotations
+    train_annotations = list()
+    val_annotations = list()
+    for annotation in tqdm(coco_dict["annotations"]):
+        if annotation["image_id"] in train_indices:
+            train_annotations.append(annotation)
+        elif annotation["image_id"] in val_indices:
+            val_annotations.append(annotation)
+    # form train val coco dicts
+    train_coco_dict = {
+        "images": train_images,
+        "annotations": train_annotations,
+        "categories": coco_dict["categories"],
+    }
+    val_coco_dict = {
+        "images": val_images,
+        "annotations": val_annotations,
+        "categories": coco_dict["categories"],
+    }
+    # get filename of the base coco file
+    base_coco_filename = os.path.basename(coco_file_path).replace(".json", "")
+    # save train val coco files
+    save_json(
+        train_coco_dict, os.path.join(target_dir, base_coco_filename + "_train.json")
+    )
+    save_json(val_coco_dict, os.path.join(target_dir, base_coco_filename + "_val.json"))
+
+
+def save_json(data, save_path):
+    """
+    Saves json formatted data (given as "data") as save_path
+    Example inputs:
+        data: {"image_id": 5}
+        save_path: "dirname/coco.json"
+    """
+    # type check when save json files
+    class NumpyEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                return super(NumpyEncoder, self).default(obj)
+
+    # create dir if not present
+    save_dir = os.path.dirname(save_path)
+    create_dir(save_dir)
+
+    # export as json
+    with open(save_path, "w", encoding="utf-8") as outfile:
+        json.dump(data, outfile, indent=4, separators=(",", ": "), cls=NumpyEncoder)
+
+
+def load_json(load_path):
+    """
+    Loads json formatted data (given as "data") from load_path
+    Example inputs:
+        load_path: "dirname/coco.json"
+    """
+    # read from path
+    with open(load_path) as json_file:
+        data = json.load(json_file)
+    return data
 
 
 def read_yaml(yaml_path):

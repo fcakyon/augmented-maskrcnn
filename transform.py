@@ -44,11 +44,11 @@ def get_transforms(mode: str = "predict") -> Compose:
         transforms = Compose(
             [
                 LongestMaxSize(max_size=768, p=1),
-                PadIfNeeded(min_height=768, min_width=768, border_mode=0, p=1),
+                # PadIfNeeded(min_height=768, min_width=768, border_mode=0, p=1),
                 RandomSizedBBoxSafeCrop(height=768, width=768, p=0),
                 HorizontalFlip(p=0.5),
                 RandomRotate90(p=0),
-                RandomBrightnessContrast(p=0),
+                RandomBrightnessContrast(p=0.3),
                 RandomGamma(p=0),
                 HueSaturationValue(p=0),
                 MotionBlur(p=0),

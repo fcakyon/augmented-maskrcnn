@@ -1,9 +1,13 @@
 # Random seed to reproduce the results
 SEED: 999
-# Directory to dataset root
+# Directory to data
 DATA_ROOT: ""
 # Path to annotation file (should be in coco object detection format)
 COCO_PATH: ""
+# Directory to validation data root (optional)
+DATA_ROOT_VAL: ""
+# Path to coco annotation file for validation data (optional)
+COCO_PATH_VAL: ""
 # Training model checkpoints and losses will be saved in the folder experiments/EXPERIMENT_NAME/
 EXPERIMENT_NAME: "exp1"
 # Path to the model to be used during predict
