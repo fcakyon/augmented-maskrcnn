@@ -5,7 +5,6 @@ import yaml
 import random
 import jsonschema
 import numpy as np
-from tqdm import tqdm
 from shutil import copyfile
 
 image_schema = {
