@@ -207,9 +207,12 @@ def get_category_mapping_from_coco_file(coco_file_path: str) -> dict:
     return category_mapping
 
 
-def split_train_val_for_coco(
+def split_coco_as_train_val(
     coco_file_path: str, target_dir: str, train_split_rate: float
 ):
+    """
+    Takes single coco dataset file path, split images into train-val and saves as seperate coco dataset files.
+    """
     # check if coco file is valid and read it
     (coco_dict, response) = read_and_validate_coco_annotation(coco_file_path)
 
@@ -233,7 +236,7 @@ def split_train_val_for_coco(
     # divide annotations
     train_annotations = list()
     val_annotations = list()
-    for annotation in tqdm(coco_dict["annotations"]):
+    for annotation in coco_dict["annotations"]:
         if annotation["image_id"] in train_indices:
             train_annotations.append(annotation)
         elif annotation["image_id"] in val_indices:

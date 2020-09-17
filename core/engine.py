@@ -265,7 +265,10 @@ def _calculate_coco_ap(
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
 
-    categories = data_loader.dataset.dataset.categories
+    try:
+        categories = data_loader.dataset.dataset.categories
+    except:
+        categories = data_loader.dataset.categories
     # categories = {category["id"] : category["name"] for category in categories}
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco_api, iou_types)
