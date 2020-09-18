@@ -208,45 +208,55 @@ def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
         "train", "val"
     category: dict
         {'id': 1, 'name': 'id_card'}
+        if given as {'id': -1, 'name': 'overall'}, overall coco ap will be logged instead of category based
     coco_evaluator: core.coco_eval.CocoEvaluator
     iter_num: int
     """
-    # get category based coco ap
-    catId = category["id"]
-    coco_evaluator.coco_eval["segm"].params.catIds = [catId] * catId
-    coco_evaluator.coco_eval["bbox"].params.catIds = [catId] * catId
+    # get category based coco ap if category id is not -1, else get overall coco ap
+    category_id = category["id"]
+    category_index = category["index"]
+    category_name = category["name"]
+
+    if category_id is not -1:
+        coco_evaluator.coco_eval["segm"].params.catIds = [category_id] * category_index
+        coco_evaluator.coco_eval["bbox"].params.catIds = [category_id] * category_index
+
+    print("COCO AP for", category_name + ":")
     coco_evaluator.accumulate()
     coco_evaluator.summarize()
 
     # log stats for tensorboard
+    # AP@0.50:0.95 for bbox
     writer.add_scalar(
         "coco eval bbox/"
         + mode
         + " "
-        + category["name"]
+        + category_name
         + ", "
         + " AP@0.50:0.95, all area",
         coco_evaluator.coco_eval["bbox"].stats[0],
         iter_num,
     )
+    # AP@0.50 for bbox
     writer.add_scalar(
-        "coco eval bbox/" + mode + " " + category["name"] + ", " + " AP@0.50, all area",
+        "coco eval bbox/" + mode + " " + category_name + ", " + " AP@0.50, all area",
         coco_evaluator.coco_eval["bbox"].stats[1],
         iter_num,
     )
-
+    # AP@0.50:0.95 for mask
     writer.add_scalar(
         "coco eval segm/"
         + mode
         + " "
-        + category["name"]
+        + category_name
         + ", "
         + " AP@0.50:0.95, all area",
         coco_evaluator.coco_eval["segm"].stats[0],
         iter_num,
     )
+    # AP@0.50 for mask
     writer.add_scalar(
-        "coco eval segm/" + mode + " " + category["name"] + ", " + " AP@0.50, all area",
+        "coco eval segm/" + mode + " " + category_name + ", " + " AP@0.50, all area",
         coco_evaluator.coco_eval["segm"].stats[1],
         iter_num,
     )
@@ -265,11 +275,6 @@ def _calculate_coco_ap(
     model.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
 
-    try:
-        categories = data_loader.dataset.dataset.categories
-    except:
-        categories = data_loader.dataset.categories
-    # categories = {category["id"] : category["name"] for category in categories}
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco_api, iou_types)
 
@@ -300,7 +305,23 @@ def _calculate_coco_ap(
     print("Averaged stats:", metric_logger)
     coco_evaluator.synchronize_between_processes()
 
+    # this is to handle both Torchvision Dataset and Subset:
+    try:
+        categories = data_loader.dataset.dataset.categories
+    except:
+        categories = data_loader.dataset.categories
+    # get all category ids that are present in the current dataset
+    present_category_ids = coco_evaluator.coco_eval["bbox"].params.catIds
+    present_categories = []
+    coco_category_index = 1
     for category in categories:
+        if category["id"] in present_category_ids:
+            category["index"] = coco_category_index
+            present_categories.append(category)
+            coco_category_index += 1
+
+    # log category based ap
+    for category in present_categories:
         _log_coco_results(writer, mode, category, coco_evaluator, iter_num)
 
     return coco_evaluator
