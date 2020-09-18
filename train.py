@@ -77,8 +77,10 @@ def train(config: dict = None):
     TRAINABLE_BACKBONE_LAYERS = config["TRAINABLE_BACKBONE_LAYERS"]
     RPN_ANCHOR_SIZES = config["RPN_ANCHOR_SIZES"]
     RPN_ANCHOR_ASPECT_RATIOS = config["RPN_ANCHOR_ASPECT_RATIOS"]
+    BOX_DETECTIONS_PER_IMAGE = config["BOX_DETECTIONS_PER_IMAGE"]
 
     LOG_FREQ = config["LOG_FREQ"]
+    COCO_AP_TYPE = config["COCO_AP_TYPE"]
     TRAIN_SPLIT_RATE = config["TRAIN_SPLIT_RATE"]
     BATCH_SIZE = config["BATCH_SIZE"]
     NUM_EPOCH = config["NUM_EPOCH"]
@@ -152,6 +154,7 @@ def train(config: dict = None):
         anchor_sizes=RPN_ANCHOR_SIZES,
         anchor_aspect_ratios=RPN_ANCHOR_ASPECT_RATIOS,
         pretrained=True,
+        box_detections_per_img=BOX_DETECTIONS_PER_IMAGE,
     )
 
     # move model to the right device
@@ -186,13 +189,14 @@ def train(config: dict = None):
         best_bbox_05095_ap = -1
         # train for one epoch, printing every PRINT_FREQ iterations
         train_one_epoch(
-            model,
-            optimizer,
-            data_loader_train,
-            coco_api_train,
-            device,
-            epoch,
+            model=model,
+            optimizer=optimizer,
+            data_loader=data_loader_train,
+            coco_api=coco_api_train,
+            device=device,
+            epoch=epoch,
             log_freq=LOG_FREQ,
+            coco_ap_type=COCO_AP_TYPE,
             writer=writer,
         )
         # update the learning rate
@@ -207,6 +211,7 @@ def train(config: dict = None):
             coco_api=coco_api_val,
             device=device,
             iter_num=iter_num,
+            coco_ap_type=COCO_AP_TYPE,
             writer=writer,
         )
         # update best model if it has the best bbox 0.50:0.95 AP

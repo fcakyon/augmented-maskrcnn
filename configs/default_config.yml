@@ -36,9 +36,13 @@ TRAINABLE_BACKBONE_LAYERS: 3
 # Will be used while generating anchors for a set of feature maps and image sizes
 RPN_ANCHOR_SIZES: [32, 64, 128, 256, 512]
 RPN_ANCHOR_ASPECT_RATIOS: [0.5, 1.0, 2.0]
+# Maximum number of detection per image, default is 100, make it lower if having cuda memory issues
+BOX_DETECTIONS_PER_IMAGE: 50
 
 # Number of iterations to print/log
 LOG_FREQ: 40
+# COCO AP logging type ("overall", "category_based")
+COCO_AP_TYPE: "category_based"
 # Train split rate of the dataset
 TRAIN_SPLIT_RATE: 0.8
 # Batch size:

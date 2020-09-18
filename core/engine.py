@@ -60,7 +60,15 @@ class LossLists:
 
 
 def train_one_epoch(
-    model, optimizer, data_loader, coco_api, device, epoch, log_freq, writer
+    model,
+    optimizer,
+    data_loader,
+    coco_api,
+    device,
+    epoch,
+    log_freq,
+    coco_ap_type,
+    writer,
 ):
     # init loss lists instance
     loss_lists = LossLists()
@@ -155,6 +163,7 @@ def train_one_epoch(
         coco_api,
         device,
         iter_num=epoch * num_images + iter_num,
+        coco_ap_type=coco_ap_type,
         writer=writer,
         mode="train",
     )
@@ -214,10 +223,10 @@ def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
     """
     # get category based coco ap if category id is not -1, else get overall coco ap
     category_id = category["id"]
-    category_index = category["index"]
     category_name = category["name"]
 
     if category_id is not -1:
+        category_index = category["index"]
         coco_evaluator.coco_eval["segm"].params.catIds = [category_id] * category_index
         coco_evaluator.coco_eval["bbox"].params.catIds = [category_id] * category_index
 
@@ -263,7 +272,7 @@ def _log_coco_results(writer, mode, category, coco_evaluator, iter_num):
 
 
 def _calculate_coco_ap(
-    model, data_loader, coco_api, device, iter_num, writer, mode="val"
+    model, data_loader, coco_api, device, iter_num, coco_ap_type, writer, mode="val"
 ):
     """
     Calculates coco ap for given data_loader.
@@ -320,15 +329,22 @@ def _calculate_coco_ap(
             present_categories.append(category)
             coco_category_index += 1
 
-    # log category based ap
-    for category in present_categories:
+    if coco_ap_type == "category_based":
+        # log category based coco ap
+        for category in present_categories:
+            _log_coco_results(writer, mode, category, coco_evaluator, iter_num)
+    elif coco_ap_type == "overall":
+        # log overall coco ap
+        category = {"id": -1, "name": "overall"}
         _log_coco_results(writer, mode, category, coco_evaluator, iter_num)
+    else:
+        Exception("Invalid COCO_AP_TYPE, try: 'overall', 'category_based'")
 
     return coco_evaluator
 
 
 @torch.no_grad()
-def evaluate(model, data_loader, coco_api, device, iter_num, writer):
+def evaluate(model, data_loader, coco_api, device, iter_num, coco_ap_type, writer):
     # calculate validation loss
     loss_lists = _calculate_val_loss(
         model, data_loader, coco_api, device, iter_num, writer
@@ -336,7 +352,7 @@ def evaluate(model, data_loader, coco_api, device, iter_num, writer):
 
     # calculate validation coco ap
     coco_evaluator = _calculate_coco_ap(
-        model, data_loader, coco_api, device, iter_num, writer, mode="val"
+        model, data_loader, coco_api, device, iter_num, coco_ap_type, writer, mode="val"
     )
 
     return loss_lists, coco_evaluator
