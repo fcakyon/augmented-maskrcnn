@@ -10,6 +10,7 @@ def get_torchvision_maskrcnn(
     anchor_sizes: list = [32, 64, 128, 256, 512],
     anchor_aspect_ratios: list = [0.5, 1.0, 2.0],
     pretrained: bool = False,
+    box_detections_per_img: int = 100,
 ):
     # prepare anchor params
     anchor_sizes = tuple([tuple((anchor_size,)) for anchor_size in anchor_sizes])
@@ -24,6 +25,7 @@ def get_torchvision_maskrcnn(
         pretrained_backbone=pretrained,
         rpn_anchor_generator=rpn_anchor_generator,
         rpn_fg_iou_thresh=0.5,
+        box_detections_per_img=box_detections_per_img,
     )
     # model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
 
