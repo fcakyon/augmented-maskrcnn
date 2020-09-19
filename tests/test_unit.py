@@ -113,9 +113,13 @@ class Tests(unittest.TestCase):
     def test_COCODataset(self):
         from transform import get_transforms
         from dataset import COCODataset
+        from utils import read_yaml
 
+        # read config file for transforms
+        config_path = "configs/default_config.yml"
+        config = read_yaml(config_path)
         # form basic albumentation transform
-        transforms = get_transforms(mode="val")
+        transforms = get_transforms(config=config, mode="val")
 
         # init COCODataset
         DATA_ROOT = "tests/data/"
