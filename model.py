@@ -10,6 +10,13 @@ def get_torchvision_maskrcnn(
     anchor_sizes: list = [32, 64, 128, 256, 512],
     anchor_aspect_ratios: list = [0.5, 1.0, 2.0],
     pretrained: bool = False,
+    rpn_pre_nms_top_n_train: int = 2000,
+    rpn_pre_nms_top_n_test: int = 1000,
+    rpn_post_nms_top_n_train: int = 2000,
+    rpn_post_nms_top_n_test: int = 1000,
+    rpn_nms_thresh: float = 0.7,
+    rpn_fg_iou_thresh: float = 0.7,
+    rpn_bg_iou_thresh: float = 0.3,
     box_detections_per_img: int = 100,
 ):
     # prepare anchor params
@@ -24,10 +31,15 @@ def get_torchvision_maskrcnn(
         pretrained=pretrained,
         pretrained_backbone=pretrained,
         rpn_anchor_generator=rpn_anchor_generator,
-        rpn_fg_iou_thresh=0.5,
+        rpn_pre_nms_top_n_train=rpn_pre_nms_top_n_train,
+        rpn_pre_nms_top_n_test=rpn_pre_nms_top_n_test,
+        rpn_post_nms_top_n_train=rpn_post_nms_top_n_train,
+        rpn_post_nms_top_n_test=rpn_post_nms_top_n_test,
+        rpn_nms_thresh=rpn_nms_thresh,
+        rpn_fg_iou_thresh=rpn_fg_iou_thresh,
+        rpn_bg_iou_thresh=rpn_bg_iou_thresh,
         box_detections_per_img=box_detections_per_img,
     )
-    # model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
 
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features

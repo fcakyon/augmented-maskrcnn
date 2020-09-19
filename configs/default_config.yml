@@ -36,8 +36,53 @@ TRAINABLE_BACKBONE_LAYERS: 3
 # Will be used while generating anchors for a set of feature maps and image sizes
 RPN_ANCHOR_SIZES: [32, 64, 128, 256, 512]
 RPN_ANCHOR_ASPECT_RATIOS: [0.5, 1.0, 2.0]
+# Number of proposals to keep before applying NMS during training
+RPN_PRE_NMS_TOP_N_TRAIN: 2000
+# Number of proposals to keep before applying NMS during testing
+RPN_PRE_NMS_TOP_N_TEST: 1000
+# Number of proposals to keep after applying NMS during training
+RPN_POST_NMS_TOP_N_TRAIN: 2000
+# Number of proposals to keep after applying NMS during testing
+RPN_POST_NMS_TOP_N_TEST: 1000
+# NMS threshold used for postprocessing the RPN proposals
+RPN_NMS_THRESH: 0.7
+# Minimum IoU between the anchor and the GT box so that they can be considered as positive during training of the RPN
+RPN_FG_IOU_THRESH: 0.7
+# Maximum IoU between the anchor and the GT box so that they can be considered as negative during training of the RPN
+RPN_BG_IOU_THRESH: 0.3
 # Maximum number of detection per image, default is 100, make it lower if having cuda memory issues
 BOX_DETECTIONS_PER_IMAGE: 50
+
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.LongestMaxSize
+LONGESTMAXSIZE_P: 1
+LONGESTMAXSIZE_MAXSIZE: 768
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.RandomSizedBBoxSafeCrop
+RANDOMSIZEDBBOXSAFECROP_P: 0
+RANDOMSIZEDBBOXSAFECROP_HEIGHT: 768
+RANDOMSIZEDBBOXSAFECROP_WIDTH: 768
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.HorizontalFlip
+HORIZONTALFLIP_P: 0.5
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.RandomRotate90
+RANDOMROTATE90_P: 0
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.RandomBrightnessContrast
+RANDOMBRIGHTNESSCONTRAST_P: 0.3
+RANDOMBRIGHTNESSCONTRAST_BRIGHTNESSLIMIT: 0.2
+RANDOMBRIGHTNESSCONTRAST_CONTRASTLIMIT: 0.2
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.RandomGamma
+RANDOMGAMMA_P: 0
+RANDOMGAMMA_GAMMALIMIT: [80, 120]
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.HueSaturationValue
+HUESATURATIONVALUE_P: 0
+HUESATURATIONVALUE_HUESHIFTLIMIT: 20
+HUESATURATIONVALUE_SATSHIFTLIMIT: 30
+HUESATURATIONVALUE_VALSHIFTLIMIT: 20
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.MotionBlur
+MOTIONBLUR_P: 0
+MOTIONBLUR_BLURLIMIT: [3, 7]
+# https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.JpegCompression
+JPEGCOMPRESSION_P: 0
+JPEGCOMPRESSION_QUALITYLOWER: 20
+JPEGCOMPRESSION_QUALITYUPPER: 95
 
 # Number of iterations to print/log
 LOG_FREQ: 40
