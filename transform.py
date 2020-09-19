@@ -16,7 +16,7 @@ from albumentations.augmentations.transforms import (
 )
 
 
-def get_transforms(mode: str = "predict") -> Compose:
+def get_transforms(config, mode: str = "predict") -> Compose:
     """
     Composes albumentations transforms.
     Returns the full list of transforms when mode is "train".
@@ -43,16 +43,42 @@ def get_transforms(mode: str = "predict") -> Compose:
     elif mode == "train":
         transforms = Compose(
             [
-                LongestMaxSize(max_size=768, p=1),
+                LongestMaxSize(
+                    max_size=config["LONGESTMAXSIZE_MAXSIZE"],
+                    p=config["LONGESTMAXSIZE_P"],
+                ),
                 # PadIfNeeded(min_height=768, min_width=768, border_mode=0, p=1),
-                RandomSizedBBoxSafeCrop(height=768, width=768, p=0),
-                HorizontalFlip(p=0.5),
-                RandomRotate90(p=0),
-                RandomBrightnessContrast(p=0.3),
-                RandomGamma(p=0),
-                HueSaturationValue(p=0),
-                MotionBlur(p=0),
-                JpegCompression(quality_lower=20, quality_upper=95, p=0),
+                RandomSizedBBoxSafeCrop(
+                    height=config["RANDOMSIZEDBBOXSAFECROP_HEIGHT"],
+                    width=config["RANDOMSIZEDBBOXSAFECROP_WIDTH"],
+                    p=config["LONGESTMAXSIZE_P"],
+                ),
+                HorizontalFlip(p=config["HORIZONTALFLIP_P"]),
+                RandomRotate90(p=config["RANDOMROTATE90_P"]),
+                RandomBrightnessContrast(
+                    brightness_limit=config["RANDOMBRIGHTNESSCONTRAST_BRIGHTNESSLIMIT"],
+                    contrast_limit=config["RANDOMBRIGHTNESSCONTRAST_CONTRASTLIMIT"],
+                    p=config["RANDOMBRIGHTNESSCONTRAST_P"],
+                ),
+                RandomGamma(
+                    gamma_limit=config["RANDOMGAMMA_GAMMALIMIT"],
+                    p=config["RANDOMGAMMA_P"],
+                ),
+                HueSaturationValue(
+                    hue_shift_limit=config["HUESATURATIONVALUE_HUESHIFTLIMIT"],
+                    sat_shift_limit=config["HUESATURATIONVALUE_SATSHIFTLIMIT"],
+                    val_shift_limit=config["HUESATURATIONVALUE_VALSHIFTLIMIT"],
+                    p=config["HUESATURATIONVALUE_P"],
+                ),
+                MotionBlur(
+                    blur_limit=tuple(config["MOTIONBLUR_BLURLIMIT"]),
+                    p=config["MOTIONBLUR_P"],
+                ),
+                JpegCompression(
+                    quality_lower=config["JPEGCOMPRESSION_QUALITYLOWER"],
+                    quality_upper=config["JPEGCOMPRESSION_QUALITYUPPER"],
+                    p=config["JPEGCOMPRESSION_P"],
+                ),
                 Normalize(
                     max_pixel_value=255.0,
                     mean=[0.485, 0.456, 0.406],

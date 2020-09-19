@@ -104,13 +104,17 @@ def train(config: dict = None):
         device = torch.device("cpu")
 
     # use our dataset and defined transformations
-    dataset = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(mode="train"))
+    dataset = COCODataset(
+        DATA_ROOT, COCO_PATH, get_transforms(config=config, mode="train")
+    )
     if COCO_PATH_VAL:
         dataset_val = COCODataset(
-            DATA_ROOT_VAL, COCO_PATH_VAL, get_transforms(mode="val")
+            DATA_ROOT_VAL, COCO_PATH_VAL, get_transforms(config=config, mode="val")
         )
     else:
-        dataset_val = COCODataset(DATA_ROOT, COCO_PATH, get_transforms(mode="val"))
+        dataset_val = COCODataset(
+            DATA_ROOT, COCO_PATH, get_transforms(config=config, mode="val")
+        )
 
     # +1 for background class
     num_classes = dataset.num_classes + 1
