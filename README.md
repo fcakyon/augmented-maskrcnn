@@ -55,6 +55,12 @@ conda activate augmented-maskrcnn
 python train.py configs/default_config.yml
 ```
 
+- Visualize realtime training/validation losses and accuracies via tensorboard from http://localhost:6006 in your browser:
+
+```console
+tensorboard --logdir=experiments
+```
+
 - Perform prediction for image "CA01_01.tif" using model "artifacts/maskrcnn-best.pt":
 
 ```console
