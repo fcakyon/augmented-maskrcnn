@@ -77,6 +77,13 @@ def train(config: dict = None):
     TRAINABLE_BACKBONE_LAYERS = config["TRAINABLE_BACKBONE_LAYERS"]
     RPN_ANCHOR_SIZES = config["RPN_ANCHOR_SIZES"]
     RPN_ANCHOR_ASPECT_RATIOS = config["RPN_ANCHOR_ASPECT_RATIOS"]
+    RPN_PRE_NMS_TOP_N_TRAIN = config["RPN_PRE_NMS_TOP_N_TRAIN"]
+    RPN_PRE_NMS_TOP_N_TEST = config["RPN_PRE_NMS_TOP_N_TEST"]
+    RPN_POST_NMS_TOP_N_TRAIN = config["RPN_POST_NMS_TOP_N_TRAIN"]
+    RPN_POST_NMS_TOP_N_TEST = config["RPN_POST_NMS_TOP_N_TEST"]
+    RPN_NMS_THRESH = config["RPN_NMS_THRESH"]
+    RPN_FG_IOU_THRESH = config["RPN_FG_IOU_THRESH"]
+    RPN_BG_IOU_THRESH = config["RPN_BG_IOU_THRESH"]
     BOX_DETECTIONS_PER_IMAGE = config["BOX_DETECTIONS_PER_IMAGE"]
 
     LOG_FREQ = config["LOG_FREQ"]
@@ -157,8 +164,15 @@ def train(config: dict = None):
         trainable_backbone_layers=TRAINABLE_BACKBONE_LAYERS,
         anchor_sizes=RPN_ANCHOR_SIZES,
         anchor_aspect_ratios=RPN_ANCHOR_ASPECT_RATIOS,
-        pretrained=True,
+        rpn_pre_nms_top_n_train=RPN_PRE_NMS_TOP_N_TRAIN,
+        rpn_pre_nms_top_n_test=RPN_PRE_NMS_TOP_N_TEST,
+        rpn_post_nms_top_n_train=RPN_POST_NMS_TOP_N_TRAIN,
+        rpn_post_nms_top_n_test=RPN_POST_NMS_TOP_N_TEST,
+        rpn_nms_thresh=RPN_NMS_THRESH,
+        rpn_fg_iou_thresh=RPN_FG_IOU_THRESH,
+        rpn_bg_iou_thresh=RPN_BG_IOU_THRESH,
         box_detections_per_img=BOX_DETECTIONS_PER_IMAGE,
+        pretrained=True,
     )
 
     # move model to the right device
