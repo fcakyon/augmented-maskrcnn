@@ -158,10 +158,10 @@ def train_one_epoch(
 
     # calculate train coco ap
     _ = _calculate_coco_ap(
-        model,
-        data_loader,
-        coco_api,
-        device,
+        model=model,
+        data_loader=data_loader,
+        coco_api=coco_api,
+        device=device,
         iter_num=epoch * num_images + iter_num,
         coco_ap_type=coco_ap_type,
         writer=writer,
