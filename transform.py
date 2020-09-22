@@ -53,6 +53,12 @@ def get_transforms(config, mode: str = "predict") -> Compose:
                     width=config["RANDOMSIZEDBBOXSAFECROP_WIDTH"],
                     p=config["LONGESTMAXSIZE_P"],
                 ),
+                ShiftScaleRotate(
+                    shift_limit=config["SHIFTSCALEROTATE_SHIFTLIMIT"],
+                    scale_limit=config["SHIFTSCALEROTATE_SCALELIMIT"],
+                    rotate_limit=config["SHIFTSCALEROTATE_ROTATELIMIT"],
+                    p=config["SHIFTSCALEROTATE_P"],
+                ),
                 HorizontalFlip(p=config["HORIZONTALFLIP_P"]),
                 RandomRotate90(p=config["RANDOMROTATE90_P"]),
                 RandomBrightnessContrast(
