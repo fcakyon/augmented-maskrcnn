@@ -19,10 +19,8 @@ def get_prediction(
     threshold: float = 0.5,
     verbose: int = 1,
 ) -> (list, list, list):
-    # apply transform
-    transforms = get_transforms(mode="predict")
-    augmented = transforms(image=image)
-    image = augmented["image"]
+    # normalize image
+    image = image / np.max(image)
     # convert to tensor
     image = to_float_tensor(image).unsqueeze(0)
 

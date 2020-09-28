@@ -16,21 +16,16 @@ from albumentations.augmentations.transforms import (
 )
 
 
-def get_transforms(config, mode: str = "predict") -> Compose:
+def get_transforms(config, mode: str = "train") -> Compose:
     """
     Composes albumentations transforms.
     Returns the full list of transforms when mode is "train".
-    mode should be one of "train", "val" or "predict".
+    mode should be one of "train", "val".
     """
-    # compose prediction transforms
-    if mode == "predict":
-        transforms = Compose(
-            [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])],
-        )
     # compose validation transforms
-    elif mode == "val":
+    if mode == "val":
         transforms = Compose(
-            [Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])],
+            [],
             bbox_params=BboxParams(
                 format="pascal_voc",
                 min_area=0.0,
@@ -84,12 +79,6 @@ def get_transforms(config, mode: str = "predict") -> Compose:
                     quality_lower=config["JPEGCOMPRESSION_QUALITYLOWER"],
                     quality_upper=config["JPEGCOMPRESSION_QUALITYUPPER"],
                     p=config["JPEGCOMPRESSION_P"],
-                ),
-                Normalize(
-                    max_pixel_value=255.0,
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                    p=1,
                 ),
             ],
             bbox_params=BboxParams(

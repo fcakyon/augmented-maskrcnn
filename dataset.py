@@ -1,6 +1,7 @@
 import os
 import cv2
 import torch
+import numpy as np
 from utils import process_coco
 from albumentations import Compose
 from core.coco_utils import convert_coco_poly_to_mask, convert_coco_poly_to_bbox
@@ -139,6 +140,8 @@ class COCODataset(object):
         num_objects = len(target["boxes"])
         target["iscrowd"] = torch.zeros((num_objects,), dtype=torch.int64)
 
+        # normalize image
+        image = image / np.max(image)
         return image_to_float_tensor(image), target
 
     def __len__(self):
