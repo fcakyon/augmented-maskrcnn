@@ -134,8 +134,8 @@ class Tests(unittest.TestCase):
         # apply checks for image tensor
         self.assertEqual(image_tensor.type(), "torch.FloatTensor")
         self.assertEqual(list(image_tensor.size()), [3, 1920, 1080])
-        self.assertAlmostEqual(float(image_tensor.max()), 2.64, places=2)
-        self.assertAlmostEqual(float(image_tensor.mean()), -0.27, places=2)
+        self.assertAlmostEqual(float(image_tensor.max()), 1.0, places=2)
+        self.assertAlmostEqual(float(image_tensor.mean()), 0.39, places=2)
 
         # apply checks for each field in the target tensor dict
         boxes_tensor_0 = target_tensor["boxes"][0]
